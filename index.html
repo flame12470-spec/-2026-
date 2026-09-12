@@ -1,0 +1,1610 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>คลังโค้ด — จัดเก็บและพรีวิวโปรเจกต์</title>
+<link rel="icon" href="https://img2.pic.in.th/889c8e9f5271de7e9329d25db1c8f5e2.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<!-- Firebase (ใช้เก็บข้อมูลออนไลน์ ให้ซิงข้ามเครื่องได้) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+<!-- สำหรับปุ่มดาวน์โหลด .zip -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+<style>
+  :root{
+    --bg:#f6f6f9;
+    --surface:#ffffff;
+    --ink:#181824;
+    --muted:#767685;
+    --border:#e7e7ee;
+    --primary:#4f46e5;
+    --primary-dark:#4338ca;
+    --primary-soft:#eeedfd;
+    --danger:#ef4444;
+    --danger-soft:#fdecec;
+    --success:#16a34a;
+    --radius:16px;
+  }
+  *{ margin:0; padding:0; box-sizing:border-box; }
+  body{
+    font-family:"Prompt",sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+    min-height:100vh;
+  }
+  button{ font-family:inherit; cursor:pointer; }
+  input, textarea{ font-family:inherit; }
+  a{ color:var(--primary); }
+
+  /* ============ NAV ============ */
+  .nav{
+    background:#fff;
+    border-bottom:1px solid var(--border);
+    padding:14px 24px;
+    display:flex; align-items:center; justify-content:space-between;
+    position:sticky; top:0; z-index:40;
+  }
+  .nav-brand{ display:flex; align-items:center; gap:10px; font-weight:600; font-size:16px; }
+  .nav-brand .mark{
+    width:38px; height:38px; border-radius:10px;
+    background:linear-gradient(155deg,#20203a,#0e0e1a);
+    display:flex; align-items:center; justify-content:center;
+    flex-shrink:0; padding:6px;
+  }
+  .nav-brand .mark img{ width:100%; height:100%; object-fit:contain; }
+  .nav-user{ display:flex; align-items:center; gap:12px; font-size:13px; color:var(--muted); }
+  .nav-user b{ color:var(--ink); }
+  .link-btn{ border:none; background:none; color:var(--primary); font-size:13px; font-weight:500; }
+  .link-btn:hover{ text-decoration:underline; }
+  .icon-btn{
+    width:34px; height:34px; border-radius:9px; border:1px solid var(--border);
+    background:#fff; font-size:15px; display:flex; align-items:center; justify-content:center;
+  }
+  .icon-btn:hover{ background:#f2f2f6; }
+
+  .page{ max-width:1000px; margin:0 auto; padding:32px 20px 60px; }
+  .hidden{ display:none !important; }
+
+  /* ============ AUTH VIEW ============ */
+  .auth-wrap{ display:flex; justify-content:center; padding-top:6vh; position:relative; }
+  .auth-topbar{ position:absolute; top:-10px; right:20px; display:flex; gap:8px; }
+  .auth-card{
+    background:#fff; border:1px solid var(--border); border-radius:var(--radius);
+    padding:36px 32px; width:100%; max-width:380px; margin:0 auto;
+    box-shadow:0 10px 30px rgba(20,20,50,.06);
+  }
+  .auth-card h1{ font-size:20px; margin-bottom:6px; text-align:center; }
+  .auth-card p.sub{ font-size:13px; color:var(--muted); margin-bottom:22px; text-align:center; }
+  /* ===============================
+     FLAME SHOP LOGO
+  =============================== */
+  .logo-wrapper {
+    position: relative;
+    z-index: 2;
+
+    width: 240px;
+    height: 240px;
+
+    margin: 0 auto 18px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    background: transparent;
+  }
+
+  .logo-wrapper img {
+    width: 100%;
+    height: 100%;
+
+    object-fit: contain;
+    object-position: center;
+
+    display: block;
+
+    background: transparent;
+
+    /* ทำให้โลโก้ดูเด่นและมีมิติ */
+    filter:
+      drop-shadow(0 8px 20px rgba(255,255,255,.16))
+      drop-shadow(0 5px 14px rgba(0,0,0,.55));
+
+    transition: transform .3s ease, filter .3s ease;
+  }
+
+  /* เอฟเฟกต์ตอนเอาเมาส์วาง */
+  .logo-wrapper:hover img {
+    transform: scale(1.04);
+
+    filter:
+      drop-shadow(0 10px 25px rgba(255,255,255,.22))
+      drop-shadow(0 7px 16px rgba(0,0,0,.65));
+  }
+
+  /* มือถือ */
+  @media (max-width: 600px) {
+
+    .logo-wrapper {
+      width: 180px;
+      height: 180px;
+
+      margin-bottom: 15px;
+    }
+
+  }
+  .field{ margin-bottom:14px; }
+  .field label{ display:block; font-size:12.5px; font-weight:500; margin-bottom:6px; color:var(--ink); }
+  .field input, .field select{
+    width:100%; height:44px; border:1px solid var(--border); border-radius:10px;
+    padding:0 14px; font-size:14px; outline:none;
+  }
+  .field input:focus{ border-color:var(--primary); }
+  .field .hint{ font-size:11px; color:var(--muted); margin-top:5px; line-height:1.5; }
+  .primary-btn{
+    width:100%; height:46px; border:none; border-radius:10px;
+    background:var(--primary); color:#fff; font-size:14px; font-weight:600;
+    margin-top:6px;
+  }
+  .primary-btn:hover{ background:var(--primary-dark); }
+  .primary-btn:disabled{ opacity:.6; cursor:not-allowed; }
+  .secondary-btn{
+    width:100%; height:44px; border:1px solid var(--border); border-radius:10px;
+    background:#fff; color:var(--ink); font-size:13.5px; font-weight:500; margin-top:8px;
+  }
+  .secondary-btn:hover{ background:#f2f2f6; }
+  .auth-switch{ text-align:center; margin-top:18px; font-size:13px; color:var(--muted); }
+  .form-msg{ font-size:12.5px; margin-top:10px; padding:10px 12px; border-radius:8px; display:none; }
+  .form-msg.error{ display:block; background:var(--danger-soft); color:var(--danger); }
+  .form-msg.info{ display:block; background:var(--primary-soft); color:var(--primary-dark); }
+
+  .setup-banner{
+    background:#fff7e6; border:1px solid #ffe1a8; color:#8a5a00;
+    border-radius:12px; padding:14px 16px; font-size:12.5px; line-height:1.7;
+    max-width:520px; margin:0 auto 20px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
+  }
+  .setup-banner button{
+    border:none; background:#8a5a00; color:#fff; border-radius:8px; padding:9px 14px; font-size:12px; font-weight:600; white-space:nowrap;
+  }
+  .active-config-note{
+    max-width:520px; margin:0 auto 16px; text-align:center; font-size:11.5px; color:var(--muted);
+  }
+
+  /* ============ DASHBOARD ============ */
+  .dash-head{ display:flex; align-items:center; justify-content:space-between; gap:14px; margin-bottom:20px; flex-wrap:wrap; }
+  .dash-head h1{ font-size:22px; }
+  .dash-tools{ display:flex; gap:10px; flex-wrap:wrap; }
+  .search-input{
+    height:42px; border:1px solid var(--border); border-radius:10px; padding:0 14px;
+    font-size:13.5px; min-width:200px; outline:none; background:#fff;
+  }
+  .search-input:focus{ border-color:var(--primary); }
+  .new-btn{
+    height:42px; padding:0 18px; border:none; border-radius:10px;
+    background:var(--primary); color:#fff; font-size:13.5px; font-weight:600;
+  }
+  .new-btn:hover{ background:var(--primary-dark); }
+
+  .grid{
+    display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:14px;
+  }
+  .card{
+    background:#fff; border:1px solid var(--border); border-radius:var(--radius);
+    padding:18px; display:flex; flex-direction:column; gap:10px;
+    box-shadow:0 6px 18px rgba(20,20,50,.04);
+  }
+  .card .c-name{ font-size:15px; font-weight:600; word-break:break-word; }
+  .card .c-time{ font-size:11.5px; color:var(--muted); }
+  .card .c-actions{ display:flex; gap:8px; margin-top:auto; padding-top:6px; }
+  .c-actions button{
+    flex:1; height:36px; border-radius:8px; font-size:12px; font-weight:500; border:1px solid var(--border); background:#fafafc;
+  }
+  .c-actions .open-btn{ background:var(--primary); color:#fff; border-color:var(--primary); flex:1.4; }
+  .c-actions .open-btn:hover{ background:var(--primary-dark); }
+  .c-actions .del-btn{ color:var(--danger); }
+  .c-actions .del-btn:hover{ background:var(--danger-soft); }
+  .c-actions button:hover{ filter:brightness(0.98); }
+
+  .empty{
+    text-align:center; padding:60px 20px; color:var(--muted);
+  }
+  .empty div.big{ font-size:34px; margin-bottom:10px; }
+
+  /* ============ EDITOR ============ */
+  .editor-top{
+    display:flex; align-items:center; gap:12px; margin-bottom:16px; flex-wrap:wrap;
+  }
+  .back-btn{
+    border:1px solid var(--border); background:#fff; height:38px; padding:0 14px; border-radius:9px; font-size:13px; font-weight:500;
+  }
+  .back-btn:hover{ background:#f2f2f6; }
+  .name-input{
+    flex:1; min-width:160px; height:38px; border:1px solid transparent; border-radius:9px;
+    padding:0 10px; font-size:16px; font-weight:600; background:transparent; outline:none;
+  }
+  .name-input:hover, .name-input:focus{ border-color:var(--border); background:#fff; }
+  .status-pill{ font-size:11.5px; color:var(--muted); display:flex; align-items:center; gap:6px; white-space:nowrap; }
+  .status-pill .dot{ width:6px; height:6px; border-radius:50%; background:var(--border); }
+  .status-pill.saved .dot{ background:var(--success); }
+  .status-pill.saving .dot{ background:#eab308; }
+
+  .connect-btn{
+    height:38px; padding:0 16px; border:1px solid var(--border); border-radius:9px; background:#fff; color:var(--ink); font-size:13px; font-weight:500;
+  }
+  .connect-btn:hover{ background:#f2f2f6; }
+
+  .export-wrap{ position:relative; }
+  .export-btn{
+    height:38px; padding:0 16px; border:none; border-radius:9px; background:var(--ink); color:#fff; font-size:13px; font-weight:500;
+  }
+  .export-menu{
+    position:absolute; right:0; top:44px; background:#fff; border:1px solid var(--border);
+    border-radius:10px; box-shadow:0 14px 34px rgba(0,0,0,.12); overflow:hidden; z-index:30; min-width:200px; display:none;
+  }
+  .export-menu.open{ display:block; }
+  .export-menu button{ display:block; width:100%; text-align:left; border:none; background:none; padding:11px 14px; font-size:12.5px; }
+  .export-menu button:hover{ background:#f5f5f8; }
+
+  .tabs{ display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; }
+  .tab-btn{
+    height:36px; padding:0 16px; border:1px solid var(--border); border-radius:9px;
+    background:#fff; font-size:13px; font-weight:500; color:var(--muted);
+  }
+  .tab-btn.active{ background:var(--ink); color:#fff; border-color:var(--ink); }
+
+  .editor-grid{ display:grid; grid-template-columns:1fr; gap:16px; }
+  @media (min-width:960px){ .editor-grid{ grid-template-columns:1fr 1fr; } }
+
+  .panel{ background:#fff; border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; display:flex; flex-direction:column; }
+  .panel-head{ padding:10px 14px; border-bottom:1px solid var(--border); font-size:12px; color:var(--muted); font-weight:500; display:flex; justify-content:space-between; align-items:center; }
+  .code-area{
+    flex:1; min-height:340px; border:none; outline:none; resize:vertical;
+    padding:14px; font-family:"SFMono-Regular",Consolas,monospace; font-size:13px; line-height:1.6;
+    background:#fbfbfd; color:#222;
+  }
+  .preview-frame-wrap{ flex:1; min-height:340px; background:#fff; }
+  .preview-frame-wrap iframe{ width:100%; height:100%; min-height:340px; border:none; }
+  .device-mini{ display:flex; gap:4px; }
+  .device-mini button{
+    width:26px; height:26px; border:1px solid var(--border); background:#fff; border-radius:6px; font-size:12px;
+  }
+  .device-mini button.active{ background:var(--primary-soft); border-color:var(--primary); }
+  .mobile-frame{ max-width:340px; margin:0 auto; }
+
+  /* ============ MODAL ============ */
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(20,20,30,.45); display:none;
+    align-items:center; justify-content:center; z-index:100; padding:20px;
+  }
+  .modal-overlay.open{ display:flex; }
+  .modal-box{ background:#fff; border-radius:16px; padding:24px; width:100%; max-width:360px; box-shadow:0 30px 70px rgba(0,0,0,.25); }
+  .modal-box h3{ font-size:16px; margin-bottom:6px; }
+  .modal-box p{ font-size:12.5px; color:var(--muted); margin-bottom:14px; line-height:1.6; }
+  .modal-box input{ width:100%; height:42px; border:1px solid var(--border); border-radius:9px; padding:0 12px; font-size:13.5px; outline:none; margin-bottom:16px; }
+  .modal-actions{ display:flex; gap:8px; justify-content:flex-end; }
+  .modal-actions button{ height:38px; padding:0 16px; border:none; border-radius:9px; font-size:12.5px; font-weight:500; }
+  .modal-actions .cancel{ background:#f0f0f4; color:var(--ink); }
+  .modal-actions .confirm{ background:var(--primary); color:#fff; }
+  .modal-actions .confirm.danger{ background:var(--danger); }
+
+  /* ---- wide modal variants (settings / connector) ---- */
+  .modal-box.wide{ max-width:560px; max-height:88vh; overflow-y:auto; }
+  .field-row{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  @media (max-width:520px){ .field-row{ grid-template-columns:1fr; } }
+  .code-snippet{
+    width:100%; min-height:220px; border:1px solid var(--border); border-radius:10px;
+    padding:12px; font-family:"SFMono-Regular",Consolas,monospace; font-size:12px; line-height:1.55;
+    background:#0e0e18; color:#dcdce8; resize:vertical; outline:none;
+  }
+  .warn-box{
+    background:#fff7e6; border:1px solid #ffe1a8; color:#8a5a00;
+    border-radius:10px; padding:11px 13px; font-size:11.5px; line-height:1.6; margin-bottom:12px;
+  }
+
+  .toast{
+    position:fixed; bottom:20px; left:50%; transform:translate(-50%,16px);
+    background:var(--ink); color:#fff; padding:11px 18px; border-radius:10px;
+    font-size:12.5px; opacity:0; transition:.2s ease; z-index:200; pointer-events:none;
+  }
+  .toast.show{ opacity:1; transform:translate(-50%,0); }
+
+  .footer-note{ text-align:center; padding:20px; color:#a3a3ad; font-size:11px; }
+</style>
+</head>
+<body>
+
+<!-- ===================== NAV ===================== -->
+<div class="nav" id="navBar" style="display:none;">
+  <div class="nav-brand"><span class="mark"><img src="https://img2.pic.in.th/889c8e9f5271de7e9329d25db1c8f5e2.png" alt="โลโก้" onerror="this.parentElement.innerHTML='&lt;/&gt;'; this.parentElement.style.cssText+='color:#fff;font-weight:700;font-size:14px;'"></span> คลังโค้ด</div>
+  <div class="nav-user">
+    <span>สวัสดี, <b id="navEmail"></b></span>
+    <button class="icon-btn" id="navDbBtn" title="ฐานข้อมูลเว็บไซต์ที่เชื่อมต่อ">🗄️</button>
+    <button class="icon-btn" id="navSettingsBtn" title="ตั้งค่าฐานข้อมูล">⚙️</button>
+    <button class="link-btn" id="logoutBtn">ออกจากระบบ</button>
+  </div>
+</div>
+
+<!-- ===================== AUTH VIEW ===================== -->
+<div class="page auth-wrap" id="authView">
+  <div style="width:100%">
+    <div class="auth-topbar">
+      <button class="icon-btn" id="authSettingsBtn" title="ตั้งค่าฐานข้อมูล">⚙️</button>
+    </div>
+    <div class="setup-banner hidden" id="setupBanner">
+      <span>⚠️ ยังไม่ได้เชื่อมต่อฐานข้อมูล — กดปุ่มด้านขวาเพื่อกรอกค่า Firebase ของคุณเอง (ไม่ต้องแก้โค้ด)</span>
+      <button id="setupBannerBtn">ตั้งค่าฐานข้อมูล</button>
+    </div>
+    <div class="active-config-note hidden" id="activeConfigNote"></div>
+    <div class="auth-card">
+      <div class="logo-wrapper">
+        <img src="https://img2.pic.in.th/889c8e9f5271de7e9329d25db1c8f5e2.png" alt="โลโก้" onerror="this.parentElement.innerHTML='&lt;/&gt;'; this.parentElement.style.cssText+='color:#181824;font-weight:700;font-size:40px;'">
+      </div>
+      <h1 id="authTitle">เข้าสู่ระบบ</h1>
+      <p class="sub" id="authSub">เข้าสู่ระบบเพื่อดูโปรเจกต์ของคุณจากทุกอุปกรณ์</p>
+      <div class="field">
+        <label>อีเมล</label>
+        <input type="email" id="emailInput" placeholder="you@example.com" autocomplete="email">
+      </div>
+      <div class="field">
+        <label>รหัสผ่าน</label>
+        <input type="password" id="passwordInput" placeholder="อย่างน้อย 6 ตัวอักษร" autocomplete="current-password">
+      </div>
+      <button class="primary-btn" id="authSubmitBtn">เข้าสู่ระบบ</button>
+      <div class="form-msg" id="authMsg"></div>
+      <div class="auth-switch">
+        <span id="authSwitchText">ยังไม่มีบัญชี?</span>
+        <button class="link-btn" id="authSwitchBtn">สมัครสมาชิก</button>
+      </div>
+      <div class="auth-switch"><button class="link-btn" id="forgotBtn">ลืมรหัสผ่าน?</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== DASHBOARD ===================== -->
+<div class="page hidden" id="dashView">
+  <div class="dash-head">
+    <h1>โปรเจกต์ของฉัน</h1>
+    <div class="dash-tools">
+      <input type="text" class="search-input" id="searchInput" placeholder="ค้นหาโปรเจกต์...">
+      <button class="new-btn" id="newProjectBtn">+ สร้างโปรเจกต์ใหม่</button>
+    </div>
+  </div>
+  <div class="grid" id="projectGrid"></div>
+</div>
+
+<!-- ===================== DATABASE: SITES LIST ===================== -->
+<div class="page hidden" id="dbView">
+  <div class="dash-head">
+    <h1>เว็บไซต์ที่เชื่อมต่อฐานข้อมูล</h1>
+    <div class="dash-tools">
+      <button class="back-btn" id="dbBackBtn">← กลับหน้าโปรเจกต์</button>
+    </div>
+  </div>
+  <div class="grid" id="dbSiteGrid"></div>
+</div>
+
+<!-- ===================== DATABASE: SITE DETAIL / RECORDS ===================== -->
+<div class="page hidden" id="dbSiteView">
+  <div class="editor-top">
+    <button class="back-btn" id="dbSiteBackBtn">← กลับ</button>
+    <div style="flex:1; min-width:160px;">
+      <div style="font-size:16px; font-weight:600;" id="dbSiteName">—</div>
+      <div style="font-size:11.5px; color:var(--muted);" id="dbSiteKeyLabel">คีย์: —</div>
+    </div>
+    <span class="status-pill" id="dbSiteStatusPill"><span class="dot"></span><span id="dbSiteStatusText">—</span></span>
+    <button class="connect-btn" id="dbSiteToggleBtn">ระงับการใช้งาน</button>
+    <button class="connect-btn" id="dbSiteDeleteAllBtn" style="color:var(--danger);">ลบชุดข้อมูลนี้ทั้งหมด</button>
+  </div>
+  <div id="dbRecordsList"></div>
+</div>
+
+<!-- ===================== EDITOR ===================== -->
+<div class="page hidden" id="editorView">
+  <div class="editor-top">
+    <button class="back-btn" id="backBtn">← กลับ</button>
+    <input type="text" class="name-input" id="projectNameInput" placeholder="ชื่อโปรเจกต์">
+    <div class="status-pill" id="statusPill"><span class="dot"></span><span id="statusText">พร้อมใช้งาน</span></div>
+    <button class="connect-btn" id="connectSiteBtn">🔌 เชื่อมต่อเว็บอื่น</button>
+    <button class="connect-btn" id="publishSiteBtn">🌐 เผยแพร่</button>
+    <div class="export-wrap">
+      <button class="export-btn" id="exportBtn">⭳ ส่งออก</button>
+      <div class="export-menu" id="exportMenu">
+        <button id="exportHtmlBtn">📄 ไฟล์ HTML เดี่ยว (.html)</button>
+        <button id="exportZipBtn">🗂 ไฟล์แยก HTML/CSS/JS (.zip)</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-file="html">HTML</button>
+    <button class="tab-btn" data-file="css">CSS</button>
+    <button class="tab-btn" data-file="js">JavaScript</button>
+  </div>
+
+  <div class="editor-grid">
+    <div class="panel">
+      <div class="panel-head"><span id="panelFileLabel">index.html</span></div>
+      <textarea class="code-area" id="codeArea" spellcheck="false"></textarea>
+    </div>
+    <div class="panel">
+      <div class="panel-head">
+        <span>ตัวอย่างเว็บไซต์</span>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <div class="device-mini">
+            <button class="active" data-dev="desktop" title="เดสก์ท็อป">🖥</button>
+            <button data-dev="mobile" title="มือถือ">📱</button>
+          </div>
+          <button class="link-btn" id="refreshPreviewBtn">↻</button>
+        </div>
+      </div>
+      <div class="preview-frame-wrap" id="previewWrap">
+        <iframe id="previewFrame" title="preview"></iframe>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p class="footer-note">© 2026 คลังโค้ด — ข้อมูลถูกเก็บไว้อย่างปลอดภัยและซิงข้ามอุปกรณ์ผ่านบัญชีของคุณ</p>
+
+<!-- ===================== MODAL: ทั่วไป (สร้าง/ลบ/ยืนยัน) ===================== -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-box">
+    <h3 id="modalTitle">สร้างโปรเจกต์ใหม่</h3>
+    <p id="modalDesc"></p>
+    <input type="text" id="modalInput" placeholder="ตั้งชื่อโปรเจกต์...">
+    <div class="modal-actions">
+      <button class="cancel" id="modalCancel">ยกเลิก</button>
+      <button class="confirm" id="modalConfirm">ยืนยัน</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== MODAL: ตั้งค่าฐานข้อมูล (Firebase Config) ===================== -->
+<div class="modal-overlay" id="settingsOverlay">
+  <div class="modal-box wide">
+    <h3>ตั้งค่าฐานข้อมูลของคุณ (Firebase)</h3>
+    <p>กรอกค่า config จากโปรเจกต์ Firebase ของคุณเอง (Firebase Console → Project settings → Your apps → SDK setup and configuration) ค่าจะถูกบันทึกไว้ในเบราว์เซอร์นี้เท่านั้น ไม่มีการส่งไปที่อื่น</p>
+    <div class="field">
+      <label>API Key *</label>
+      <input type="text" id="cfgApiKey" placeholder="AIzaSy...">
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Auth Domain</label>
+        <input type="text" id="cfgAuthDomain" placeholder="your-app.firebaseapp.com">
+      </div>
+      <div class="field">
+        <label>Project ID *</label>
+        <input type="text" id="cfgProjectId" placeholder="your-app">
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Storage Bucket</label>
+        <input type="text" id="cfgStorageBucket" placeholder="your-app.firebasestorage.app">
+      </div>
+      <div class="field">
+        <label>Messaging Sender ID</label>
+        <input type="text" id="cfgMessagingSenderId" placeholder="123456789">
+      </div>
+    </div>
+    <div class="field">
+      <label>App ID *</label>
+      <input type="text" id="cfgAppId" placeholder="1:123456789:web:abcdef">
+    </div>
+    <div class="field">
+      <label>Measurement ID (ถ้ามี)</label>
+      <input type="text" id="cfgMeasurementId" placeholder="G-XXXXXXX">
+    </div>
+    <div class="form-msg" id="settingsMsg"></div>
+    <button class="primary-btn" id="settingsSaveBtn">บันทึกและใช้ฐานข้อมูลนี้</button>
+    <button class="secondary-btn" id="settingsResetBtn">ล้างค่า / กลับไปใช้ค่าเริ่มต้น</button>
+    <div class="modal-actions" style="margin-top:14px;">
+      <button class="cancel" id="settingsCancel">ปิด</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== MODAL: สร้างโค้ดเชื่อมต่อเว็บอื่น ===================== -->
+<div class="modal-overlay" id="connectOverlay">
+  <div class="modal-box wide">
+    <h3>โค้ดเชื่อมต่อฐานข้อมูลสำหรับเว็บไซต์อื่น</h3>
+    <p>คัดลอกโค้ดด้านล่างไปวางในเว็บไซต์อื่นของคุณ (ก่อน <code>&lt;/body&gt;</code>) เพื่อให้เว็บนั้นบันทึก/อ่านข้อมูลลงฐานข้อมูลเดียวกัน โดยจะเก็บแยกเป็นชุดข้อมูลของโปรเจกต์นี้โดยเฉพาะ</p>
+    <div class="field">
+      <label>ชื่อชุดข้อมูล (แก้ไขได้ ใช้แยกแต่ละเว็บ)</label>
+      <input type="text" id="connectKeyInput" placeholder="เช่น site-contact-form">
+      <div class="hint">แก้ไขชื่อตรงนี้ได้ตามต้องการ (ตัวอักษร/ตัวเลข/ขีดกลาง) — พิมพ์เสร็จระบบจะเขียนโค้ดด้านล่างให้ใหม่ทันทีอัตโนมัติ ไม่ต้องแก้โค้ดเอง</div>
+    </div>
+    <div class="warn-box">
+      ⚠️ สำคัญ: โค้ดนี้ทำให้เว็บไซต์อื่นเขียนข้อมูลเข้าฐานข้อมูลของคุณได้โดยไม่ต้องล็อกอิน ก่อนใช้งานจริงควรไปตั้งค่า <b>Firestore Security Rules</b> ใน Firebase Console ให้จำกัดสิทธิ์การเขียน/อ่านเฉพาะ collection <code>external_data</code> เท่านั้น (ไม่เช่นนั้นใครก็ตามที่มีโค้ดนี้จะเขียนข้อมูลเข้ามาได้) — หลังคัดลอกโค้ด รายการเว็บไซต์นี้จะไปโผล่ในเมนู 🗄️ ฐานข้อมูล ที่ navbar ให้อัตโนมัติ ซึ่งคุณสามารถดู/แก้ไข/ลบข้อมูล และระงับการใช้งานเว็บนี้ได้จากที่นั่น
+    </div>
+    <textarea class="code-snippet" id="connectSnippet" readonly spellcheck="false"></textarea>
+
+    <div class="field" style="margin-top:18px;">
+      <label>🔁 แปลงโค้ดอัตโนมัติ — วางโค้ด HTML ทั้งหน้าของเว็บไซต์อื่น แล้วให้ระบบแทรกโค้ดเชื่อมต่อด้านบนให้อัตโนมัติ</label>
+      <textarea class="code-snippet" id="autoConnectInput" placeholder="วางโค้ด HTML ทั้งหน้าของเว็บไซต์อื่นที่นี่..." spellcheck="false" style="background:#fbfbfd; color:#222; min-height:150px;"></textarea>
+    </div>
+    <button class="secondary-btn" id="autoConnectBtn">🔁 แปลง / แทรกโค้ดเชื่อมต่อให้อัตโนมัติ</button>
+    <div class="field hidden" id="autoConnectResultWrap" style="margin-top:14px;">
+      <label>ผลลัพธ์ (แทรกโค้ดเชื่อมต่อไว้ก่อน &lt;/body&gt; ให้แล้ว)</label>
+      <textarea class="code-snippet" id="autoConnectOutput" readonly spellcheck="false" style="min-height:220px;"></textarea>
+      <div class="modal-actions" style="margin-top:10px; justify-content:flex-start;">
+        <button class="cancel" id="autoConnectCopyBtn" style="width:auto;">คัดลอกผลลัพธ์</button>
+        <button class="cancel" id="autoConnectDownloadBtn" style="width:auto;">ดาวน์โหลด .html</button>
+      </div>
+    </div>
+    <div class="modal-actions" style="margin-top:14px;">
+      <button class="cancel" id="connectClose">ปิด</button>
+      <button class="confirm" id="connectCopyBtn">คัดลอกโค้ด</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== MODAL: แก้ไขข้อมูล (JSON) ===================== -->
+<div class="modal-overlay" id="editRecordOverlay">
+  <div class="modal-box wide">
+    <h3>แก้ไขข้อมูล (JSON)</h3>
+    <p>แก้ไขค่าด้านล่างแล้วกดบันทึก ต้องเป็นรูปแบบ JSON ที่ถูกต้อง</p>
+    <textarea class="code-snippet" id="editRecordSnippet" spellcheck="false" style="background:#fbfbfd; color:#222;"></textarea>
+    <div class="form-msg" id="editRecordMsg"></div>
+    <div class="modal-actions" style="margin-top:14px;">
+      <button class="cancel" id="editRecordCancel">ยกเลิก</button>
+      <button class="confirm" id="editRecordSaveBtn">บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== MODAL: เผยแพร่เป็นเว็บไซต์ ===================== -->
+<div class="modal-overlay" id="publishOverlay">
+  <div class="modal-box wide">
+    <h3>เผยแพร่โปรเจกต์เป็นเว็บไซต์</h3>
+    <p>เผยแพร่โปรเจกต์นี้ให้มีลิงก์สาธารณะ ใครก็เปิดดูได้ทันทีโดยไม่ต้องล็อกอิน</p>
+    <div class="warn-box">
+      ⚠️ ต้องตั้งค่า Firestore Security Rules ให้ collection <code>published</code> อ่านได้แบบสาธารณะ (เช่น <code>allow read: if true;</code>) แต่จำกัดการเขียน/ลบเฉพาะเจ้าของเท่านั้น ก่อนใช้งานจริง ไม่เช่นนั้นลิงก์จะเปิดไม่ขึ้นหรือใครก็แก้ไขได้
+    </div>
+    <div id="publishStatusArea"><p style="font-size:12.5px; color:var(--muted);">กำลังตรวจสอบสถานะ...</p></div>
+    <div class="modal-actions" style="margin-top:14px; justify-content:space-between;">
+      <button class="cancel" id="publishClose">ปิด</button>
+      <button class="confirm" id="publishActionBtn">เผยแพร่ตอนนี้</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== เว็บที่เผยแพร่แล้ว: มุมมองสาธารณะแบบเต็มหน้าจอ ===================== -->
+<div id="publishedViewWrap" class="hidden" style="position:fixed; inset:0; background:#fff; z-index:9999;">
+  <iframe id="publishedFrame" title="published site" style="width:100%; height:100%; border:none;"></iframe>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* =====================================================
+     1) ตั้งค่า Firebase
+     - ค่าเริ่มต้น (fallback) อยู่ด้านล่างนี้
+     - ผู้ใช้สามารถกดปุ่ม ⚙️ เพื่อกรอกค่าของตัวเองแทนได้จากหน้าเว็บโดยตรง
+       (บันทึกไว้ใน localStorage ของเบราว์เซอร์ ไม่ต้องแก้ไฟล์)
+     ===================================================== */
+  const STORAGE_KEY = "flameCodeFirebaseConfig";
+
+  const DEFAULT_FIREBASE_CONFIG = {
+    apiKey: "AIzaSyB7oxfE5WWBrwdaq-YjheBV--S4bZMWZtw",
+    authDomain: "flame-code.firebaseapp.com",
+    projectId: "flame-code",
+    storageBucket: "flame-code.firebasestorage.app",
+    messagingSenderId: "944111050256",
+    appId: "1:944111050256:web:8d8b1c7c6a94f061a6b495",
+    measurementId: "G-NWCZVYKF86"
+  };
+
+  function getStoredConfig(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : null;
+    }catch(e){ return null; }
+  }
+  function setStoredConfig(cfg){ localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg)); }
+  function clearStoredConfig(){ localStorage.removeItem(STORAGE_KEY); }
+
+  const storedCfg = getStoredConfig();
+  const usingCustomConfig = !!storedCfg;
+  const firebaseConfig = storedCfg || DEFAULT_FIREBASE_CONFIG;
+
+  let isConfigured = !!(firebaseConfig && firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.appId);
+  let auth = null;
+  let db = null;
+  let firebaseInitError = "";
+
+  if(isConfigured){
+    if(typeof firebase === "undefined"){
+      // ไลบรารี Firebase โหลดไม่สำเร็จ (เช่น อินเทอร์เน็ตหลุด หรือ gstatic.com ถูกบล็อก)
+      isConfigured = false;
+      firebaseInitError = "โหลดไลบรารี Firebase ไม่สำเร็จ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ตแล้วรีเฟรชหน้าใหม่";
+    } else {
+      try{
+        firebase.initializeApp(firebaseConfig);
+        auth = firebase.auth();
+        db = firebase.firestore();
+      }catch(err){
+        console.error("Firebase init error:", err);
+        isConfigured = false;
+        firebaseInitError = "เชื่อมต่อฐานข้อมูลไม่สำเร็จ: " + (err && err.message ? err.message : "ค่า config ไม่ถูกต้อง");
+      }
+    }
+  }
+
+  if(!isConfigured){
+    const banner = document.getElementById("setupBanner");
+    banner.classList.remove("hidden");
+    if(firebaseInitError){
+      const msgSpan = banner.querySelector("span");
+      if(msgSpan) msgSpan.textContent = "⚠️ " + firebaseInitError + " — กดปุ่มด้านขวาเพื่อตั้งค่าใหม่";
+    }
+  }
+
+  if(isConfigured && usingCustomConfig){
+    const note = document.getElementById("activeConfigNote");
+    note.classList.remove("hidden");
+    note.textContent = "🔗 กำลังใช้ฐานข้อมูลของคุณเอง (โปรเจกต์: " + firebaseConfig.projectId + ")";
+  }
+
+  /* =====================================================
+     0) มุมมองสาธารณะสำหรับเว็บไซต์ที่ถูกเผยแพร่ (เปิดผ่าน ?site=KEY)
+     - ทำงานก่อนระบบล็อกอิน ไม่ต้องล็อกอินก็เปิดดูได้
+     ===================================================== */
+  const urlParams = new URLSearchParams(location.search);
+  const publishedSiteId = urlParams.get("site");
+  if(publishedSiteId){
+    showPublishedSite(publishedSiteId);
+  }
+  function showPublishedSite(id){
+    document.getElementById("publishedViewWrap").classList.remove("hidden");
+    const frame = document.getElementById("publishedFrame");
+    if(!isConfigured || !db){
+      frame.srcdoc = "<p style='font-family:sans-serif;padding:20px;color:#ef4444;'>ยังไม่ได้เชื่อมต่อฐานข้อมูล ไม่สามารถโหลดเว็บไซต์นี้ได้</p>";
+      return;
+    }
+    db.collection("published").doc(id).get().then((doc) => {
+      if(doc.exists && doc.data().html){
+        frame.srcdoc = doc.data().html;
+      } else {
+        frame.srcdoc = "<p style='font-family:sans-serif;padding:20px;color:#767685;'>ไม่พบเว็บไซต์ที่เผยแพร่นี้ หรือถูกยกเลิกการเผยแพร่ไปแล้ว</p>";
+      }
+    }).catch((err) => {
+      frame.srcdoc = "<p style='font-family:sans-serif;padding:20px;color:#ef4444;'>โหลดเว็บไซต์ไม่สำเร็จ: " + String(err && err.message ? err.message : err) + "</p>";
+    });
+  }
+
+  /* ---------------- state ---------------- */
+  let mode = "login"; // login | register
+  let currentUser = null;
+  let projects = [];        // [{id,name,html,css,js,updatedAt}]
+  let currentId = null;
+  let currentFile = "html";
+  let searchTerm = "";
+  let saveTimer = null;
+  let unsubscribeProjects = null;
+  let pendingConfirm = null;
+
+  const $ = (id) => document.getElementById(id);
+  const DEFAULT_CODE = {
+    html: "<h1>สวัสดี โลก!</h1>\n<p>เริ่มแก้ไขโค้ดของคุณได้เลย</p>",
+    css: "body {\n  font-family: sans-serif;\n  padding: 40px;\n  text-align: center;\n  color: #222;\n}\nh1 { color: #4f46e5; }",
+    js: "// เขียน JavaScript ของคุณที่นี่\nconsole.log('สวัสดีจากคลังโค้ด');"
+  };
+
+  function showToast(msg){
+    const t = $("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(()=> t.classList.remove("show"), 2200);
+  }
+
+  function relativeTime(ms){
+    if(!ms) return "เมื่อสักครู่";
+    const diff = Math.max(0, Date.now() - ms);
+    const min = Math.floor(diff/60000);
+    if(min < 1) return "เมื่อสักครู่";
+    if(min < 60) return min + " นาทีที่แล้ว";
+    const hr = Math.floor(min/60);
+    if(hr < 24) return hr + " ชั่วโมงที่แล้ว";
+    const day = Math.floor(hr/24);
+    if(day < 7) return day + " วันที่แล้ว";
+    return new Date(ms).toLocaleDateString("th-TH");
+  }
+
+  function escapeHtml(s){
+    return String(s || "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  }
+
+  function slug(name){
+    return (name || "project").trim().toLowerCase().replace(/[^a-z0-9ก-๙\-_]+/gi,"-").replace(/^-+|-+$/g,"") || "project";
+  }
+
+  function downloadBlob(blob, filename){
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  /* =====================================================
+     2) AUTH
+     ===================================================== */
+  function setAuthMode(newMode){
+    mode = newMode;
+    $("authMsg").className = "form-msg";
+    if(mode === "login"){
+      $("authTitle").textContent = "เข้าสู่ระบบ";
+      $("authSub").textContent = "เข้าสู่ระบบเพื่อดูโปรเจกต์ของคุณจากทุกอุปกรณ์";
+      $("authSubmitBtn").textContent = "เข้าสู่ระบบ";
+      $("authSwitchText").textContent = "ยังไม่มีบัญชี?";
+      $("authSwitchBtn").textContent = "สมัครสมาชิก";
+    } else {
+      $("authTitle").textContent = "สมัครสมาชิก";
+      $("authSub").textContent = "สร้างบัญชีเพื่อเริ่มเก็บโปรเจกต์ของคุณ";
+      $("authSubmitBtn").textContent = "สมัครสมาชิก";
+      $("authSwitchText").textContent = "มีบัญชีอยู่แล้ว?";
+      $("authSwitchBtn").textContent = "เข้าสู่ระบบ";
+    }
+  }
+  $("authSwitchBtn").addEventListener("click", () => setAuthMode(mode === "login" ? "register" : "login"));
+
+  function authError(msg){
+    const el = $("authMsg");
+    el.textContent = msg;
+    el.className = "form-msg error";
+  }
+
+  $("authSubmitBtn").addEventListener("click", async () => {
+    if(!isConfigured){ authError("ยังไม่ได้เชื่อมต่อฐานข้อมูล กรุณากดปุ่ม ⚙️ เพื่อตั้งค่าก่อน"); return; }
+    const email = $("emailInput").value.trim();
+    const password = $("passwordInput").value;
+    if(!email || !password){ authError("กรุณากรอกอีเมลและรหัสผ่าน"); return; }
+    if(password.length < 6){ authError("รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร"); return; }
+    $("authSubmitBtn").disabled = true;
+    try{
+      if(mode === "login"){
+        await auth.signInWithEmailAndPassword(email, password);
+      } else {
+        await auth.createUserWithEmailAndPassword(email, password);
+      }
+    }catch(err){
+      authError(translateAuthError(err));
+    }
+    $("authSubmitBtn").disabled = false;
+  });
+
+  $("forgotBtn").addEventListener("click", async () => {
+    if(!isConfigured){ authError("ยังไม่ได้เชื่อมต่อฐานข้อมูล"); return; }
+    const email = $("emailInput").value.trim();
+    if(!email){ authError("กรุณากรอกอีเมลของคุณก่อน แล้วกด \"ลืมรหัสผ่าน\" อีกครั้ง"); return; }
+    try{
+      await auth.sendPasswordResetEmail(email);
+      const el = $("authMsg");
+      el.textContent = "ส่งลิงก์ตั้งรหัสผ่านใหม่ไปที่อีเมลแล้ว";
+      el.className = "form-msg info";
+    }catch(err){ authError(translateAuthError(err)); }
+  });
+
+  function translateAuthError(err){
+    const code = err && err.code;
+    const map = {
+      "auth/email-already-in-use":"อีเมลนี้ถูกใช้สมัครไปแล้ว",
+      "auth/invalid-email":"รูปแบบอีเมลไม่ถูกต้อง",
+      "auth/user-not-found":"ไม่พบบัญชีนี้ในระบบ",
+      "auth/wrong-password":"รหัสผ่านไม่ถูกต้อง",
+      "auth/invalid-credential":"อีเมลหรือรหัสผ่านไม่ถูกต้อง",
+      "auth/weak-password":"รหัสผ่านสั้นเกินไป"
+    };
+    return map[code] || "เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง";
+  }
+
+  $("logoutBtn").addEventListener("click", () => auth && auth.signOut());
+
+  if(isConfigured){
+    auth.onAuthStateChanged((user) => {
+      currentUser = user;
+      if(user){
+        $("navBar").style.display = "flex";
+        $("navEmail").textContent = user.email;
+        $("authView").classList.add("hidden");
+        showDashboard();
+        listenProjects();
+        listenSites();
+      } else {
+        if(unsubscribeProjects){ unsubscribeProjects(); unsubscribeProjects = null; }
+        if(unsubscribeSites){ unsubscribeSites(); unsubscribeSites = null; }
+        if(unsubscribeRecords){ unsubscribeRecords(); unsubscribeRecords = null; }
+        $("navBar").style.display = "none";
+        $("authView").classList.remove("hidden");
+        $("dashView").classList.add("hidden");
+        $("editorView").classList.add("hidden");
+        $("dbView").classList.add("hidden");
+        $("dbSiteView").classList.add("hidden");
+      }
+    });
+  }
+
+  /* =====================================================
+     3) DASHBOARD / PROJECTS (Firestore)
+     ===================================================== */
+  function projectsRef(){
+    return db.collection("users").doc(currentUser.uid).collection("projects");
+  }
+
+  function listenProjects(){
+    if(unsubscribeProjects) unsubscribeProjects();
+    unsubscribeProjects = projectsRef().orderBy("updatedAt","desc").onSnapshot((snap) => {
+      projects = snap.docs.map(d => {
+        const data = d.data();
+        return {
+          id:d.id, name:data.name || "โปรเจกต์ไม่มีชื่อ",
+          html:data.html || "", css:data.css || "", js:data.js || "",
+          updatedAt: data.updatedAt && data.updatedAt.toMillis ? data.updatedAt.toMillis() : Date.now()
+        };
+      });
+      renderGrid();
+    }, (err) => { console.error(err); showToast("โหลดข้อมูลไม่สำเร็จ: " + err.message); });
+  }
+
+  function showDashboard(){
+    $("dashView").classList.remove("hidden");
+    $("editorView").classList.add("hidden");
+    $("dbView").classList.add("hidden");
+    $("dbSiteView").classList.add("hidden");
+  }
+
+  function renderGrid(){
+    const grid = $("projectGrid");
+    const filtered = projects.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
+    if(filtered.length === 0){
+      grid.innerHTML = `<div class="empty" style="grid-column:1/-1">
+        <div class="big">📁</div>
+        <p>${projects.length === 0 ? "ยังไม่มีโปรเจกต์ กด \"สร้างโปรเจกต์ใหม่\" เพื่อเริ่มต้น" : "ไม่พบโปรเจกต์ที่ค้นหา"}</p>
+      </div>`;
+      return;
+    }
+    grid.innerHTML = "";
+    filtered.forEach(p => {
+      const card = document.createElement("div");
+      card.className = "card";
+      card.innerHTML = `
+        <div class="c-name">${escapeHtml(p.name)}</div>
+        <div class="c-time">แก้ไขล่าสุด ${relativeTime(p.updatedAt)}</div>
+        <div class="c-actions">
+          <button class="open-btn">เปิด</button>
+          <button class="dup-btn">คัดลอก</button>
+          <button class="del-btn">ลบ</button>
+        </div>
+      `;
+      card.querySelector(".open-btn").addEventListener("click", () => openEditor(p.id));
+      card.querySelector(".dup-btn").addEventListener("click", () => duplicateProject(p));
+      card.querySelector(".del-btn").addEventListener("click", () => confirmDelete(p));
+      grid.appendChild(card);
+    });
+  }
+
+  $("searchInput").addEventListener("input", (e) => { searchTerm = e.target.value; renderGrid(); });
+
+  async function createProject(name){
+    try{
+      const docRef = await projectsRef().add({
+        name: name || "โปรเจกต์ใหม่",
+        html: DEFAULT_CODE.html, css: DEFAULT_CODE.css, js: DEFAULT_CODE.js,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      showToast("สร้างโปรเจกต์แล้ว");
+      openEditor(docRef.id, { name: name || "โปรเจกต์ใหม่", html: DEFAULT_CODE.html, css: DEFAULT_CODE.css, js: DEFAULT_CODE.js });
+    }catch(err){ showToast("สร้างโปรเจกต์ไม่สำเร็จ: " + err.message); }
+  }
+
+  async function duplicateProject(p){
+    try{
+      await projectsRef().add({
+        name: p.name + " (สำเนา)", html:p.html, css:p.css, js:p.js,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      showToast("คัดลอกโปรเจกต์แล้ว");
+    }catch(err){ showToast("คัดลอกไม่สำเร็จ: " + err.message); }
+  }
+
+  function confirmDelete(p){
+    openModal({
+      title:"ลบโปรเจกต์นี้?",
+      desc:`"${p.name}" จะถูกลบอย่างถาวรและไม่สามารถกู้คืนได้`,
+      hideInput:true, confirmText:"ลบโปรเจกต์", danger:true,
+      onConfirm: async () => {
+        try{
+          await projectsRef().doc(p.id).delete();
+          showToast("ลบโปรเจกต์แล้ว");
+        }catch(err){ showToast("ลบไม่สำเร็จ: " + err.message); }
+      }
+    });
+  }
+
+  $("newProjectBtn").addEventListener("click", () => {
+    openModal({ title:"สร้างโปรเจกต์ใหม่", desc:"ตั้งชื่อโปรเจกต์ของคุณ", confirmText:"สร้างโปรเจกต์",
+      onConfirm:(val) => createProject(val || "โปรเจกต์ใหม่") });
+  });
+
+  /* =====================================================
+     4) EDITOR
+     ===================================================== */
+  let currentData = { html:"", css:"", js:"" };
+  let previewTimer = null;
+
+  function openEditor(id, seedData){
+    currentId = id;
+    const p = seedData || projects.find(p => p.id === id) || { name:"", html:"", css:"", js:"" };
+    currentData = { html:p.html || "", css:p.css || "", js:p.js || "" };
+    currentFile = "html";
+    $("projectNameInput").value = p.name || "";
+    document.querySelectorAll(".tab-btn").forEach(t => t.classList.toggle("active", t.dataset.file === "html"));
+    $("panelFileLabel").textContent = "index.html";
+    $("codeArea").value = currentData.html;
+    $("dashView").classList.add("hidden");
+    $("dbView").classList.add("hidden");
+    $("dbSiteView").classList.add("hidden");
+    $("editorView").classList.remove("hidden");
+    setStatus("idle");
+    updatePreview();
+  }
+
+  $("backBtn").addEventListener("click", () => {
+    saveNow();
+    showDashboard();
+  });
+
+  document.querySelectorAll(".tab-btn").forEach(tab => {
+    tab.addEventListener("click", () => {
+      currentData[currentFile] = $("codeArea").value;
+      currentFile = tab.dataset.file;
+      document.querySelectorAll(".tab-btn").forEach(t => t.classList.toggle("active", t === tab));
+      $("panelFileLabel").textContent = currentFile === "html" ? "index.html" : currentFile === "css" ? "style.css" : "script.js";
+      $("codeArea").value = currentData[currentFile];
+    });
+  });
+
+  $("codeArea").addEventListener("input", () => {
+    currentData[currentFile] = $("codeArea").value;
+    scheduleSave();
+    clearTimeout(previewTimer);
+    previewTimer = setTimeout(updatePreview, 350);
+  });
+
+  $("projectNameInput").addEventListener("input", scheduleSave);
+
+  function setStatus(state){
+    const pill = $("statusPill");
+    pill.classList.remove("saved","saving");
+    if(state === "saving"){ pill.classList.add("saving"); $("statusText").textContent = "กำลังบันทึก..."; }
+    else if(state === "saved"){ pill.classList.add("saved"); $("statusText").textContent = "บันทึกแล้ว"; }
+    else { $("statusText").textContent = "พร้อมใช้งาน"; }
+  }
+
+  function scheduleSave(){
+    setStatus("saving");
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(saveNow, 600);
+  }
+
+  async function saveNow(){
+    if(!currentId || !currentUser) return;
+    currentData[currentFile] = $("codeArea").value;
+    const name = $("projectNameInput").value.trim() || "โปรเจกต์ไม่มีชื่อ";
+    try{
+      await projectsRef().doc(currentId).update({
+        name, html:currentData.html, css:currentData.css, js:currentData.js,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      setStatus("saved");
+    }catch(err){ showToast("บันทึกไม่สำเร็จ: " + err.message); }
+  }
+
+  function buildFullDocument(css, html, js, jsExternalSrc){
+    // ใช้การต่อสตริงแบบธรรมดา (ไม่ใช้ template literal ที่มี ${...})
+    // เพื่อไม่ให้พังหากโค้ดของผู้ใช้มีอักขระ backtick (`) หรือ ${...} อยู่ในนั้น
+    var jsTag = jsExternalSrc
+      ? '<scr' + 'ipt src="script.js"></scr' + 'ipt>'
+      : '<scr' + 'ipt>' + (js || "") + '</scr' + 'ipt>';
+    return [
+      "<!DOCTYPE html>",
+      "<html>",
+      "<head>",
+      '<meta charset="UTF-8">',
+      jsExternalSrc ? '<link rel="stylesheet" href="style.css">' : ("<style>" + (css || "") + "</style>"),
+      "</head>",
+      "<body>",
+      (html || ""),
+      jsTag,
+      "</body>",
+      "</html>"
+    ].join("\n");
+  }
+
+  function updatePreview(){
+    try{
+      const doc = buildFullDocument(currentData.css, currentData.html, currentData.js, false);
+      $("previewFrame").srcdoc = doc;
+    }catch(err){
+      console.error("Preview error:", err);
+      $("previewFrame").srcdoc = "<p style='font-family:sans-serif;color:#ef4444;padding:16px;'>พรีวิวไม่สำเร็จ: " + escapeHtml(err.message) + "</p>";
+    }
+  }
+  $("refreshPreviewBtn").addEventListener("click", updatePreview);
+
+  document.querySelectorAll(".device-mini button").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".device-mini button").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      $("previewWrap").classList.toggle("mobile-frame", btn.dataset.dev === "mobile");
+    });
+  });
+
+  /* ---------------- export ---------------- */
+  $("exportBtn").addEventListener("click", (e) => {
+    e.stopPropagation();
+    $("exportMenu").classList.toggle("open");
+  });
+  document.addEventListener("click", (e) => {
+    if(!e.target.closest(".export-wrap")) $("exportMenu").classList.remove("open");
+  });
+
+  $("exportHtmlBtn").addEventListener("click", () => {
+    currentData[currentFile] = $("codeArea").value;
+    const doc = buildFullDocument(currentData.css, currentData.html, currentData.js, false);
+    downloadBlob(new Blob([doc], {type:"text/html"}), slug($("projectNameInput").value) + ".html");
+    $("exportMenu").classList.remove("open");
+    showToast("ดาวน์โหลดไฟล์ HTML แล้ว");
+  });
+
+  $("exportZipBtn").addEventListener("click", async () => {
+    currentData[currentFile] = $("codeArea").value;
+    const indexHtml = buildFullDocument(currentData.css, currentData.html, currentData.js, true);
+    try{
+      const zip = new JSZip();
+      zip.file("index.html", indexHtml);
+      zip.file("style.css", currentData.css || "");
+      zip.file("script.js", currentData.js || "");
+      const blob = await zip.generateAsync({type:"blob"});
+      downloadBlob(blob, slug($("projectNameInput").value) + ".zip");
+      showToast("ดาวน์โหลดไฟล์ ZIP แล้ว");
+    }catch(err){ showToast("ส่งออกไม่สำเร็จ: " + err.message); }
+    $("exportMenu").classList.remove("open");
+  });
+
+  /* =====================================================
+     5) MODAL ทั่วไป (ใช้ร่วมกันทั้งเว็บ)
+     ===================================================== */
+  function openModal({title, desc, confirmText, danger, hideInput, onConfirm}){
+    $("modalTitle").textContent = title;
+    $("modalDesc").textContent = desc || "";
+    $("modalDesc").style.display = desc ? "block" : "none";
+    $("modalInput").style.display = hideInput ? "none" : "block";
+    $("modalInput").value = "";
+    $("modalConfirm").textContent = confirmText || "ยืนยัน";
+    $("modalConfirm").className = "confirm" + (danger ? " danger" : "");
+    pendingConfirm = onConfirm;
+    $("modalOverlay").classList.add("open");
+    if(!hideInput) setTimeout(() => $("modalInput").focus(), 50);
+  }
+  function closeModal(){ $("modalOverlay").classList.remove("open"); pendingConfirm = null; }
+  $("modalCancel").addEventListener("click", closeModal);
+  $("modalOverlay").addEventListener("click", (e) => { if(e.target === $("modalOverlay")) closeModal(); });
+  $("modalConfirm").addEventListener("click", () => {
+    if(pendingConfirm) pendingConfirm($("modalInput").value.trim());
+    closeModal();
+  });
+  $("modalInput").addEventListener("keydown", (e) => {
+    if(e.key === "Enter"){ if(pendingConfirm) pendingConfirm($("modalInput").value.trim()); closeModal(); }
+  });
+
+  /* =====================================================
+     6) ตั้งค่าฐานข้อมูล (Settings modal) — เชื่อมต่อฐานข้อมูลของตัวเองผ่านหน้าเว็บ
+     ===================================================== */
+  function openSettingsModal(){
+    const cfg = getStoredConfig() || {};
+    $("cfgApiKey").value = cfg.apiKey || "";
+    $("cfgAuthDomain").value = cfg.authDomain || "";
+    $("cfgProjectId").value = cfg.projectId || "";
+    $("cfgStorageBucket").value = cfg.storageBucket || "";
+    $("cfgMessagingSenderId").value = cfg.messagingSenderId || "";
+    $("cfgAppId").value = cfg.appId || "";
+    $("cfgMeasurementId").value = cfg.measurementId || "";
+    $("settingsMsg").className = "form-msg";
+    $("settingsOverlay").classList.add("open");
+  }
+  function closeSettingsModal(){ $("settingsOverlay").classList.remove("open"); }
+
+  $("authSettingsBtn").addEventListener("click", openSettingsModal);
+  $("setupBannerBtn").addEventListener("click", openSettingsModal);
+  $("navSettingsBtn").addEventListener("click", openSettingsModal);
+  $("settingsCancel").addEventListener("click", closeSettingsModal);
+  $("settingsOverlay").addEventListener("click", (e) => { if(e.target === $("settingsOverlay")) closeSettingsModal(); });
+
+  $("settingsSaveBtn").addEventListener("click", () => {
+    const cfg = {
+      apiKey: $("cfgApiKey").value.trim(),
+      authDomain: $("cfgAuthDomain").value.trim(),
+      projectId: $("cfgProjectId").value.trim(),
+      storageBucket: $("cfgStorageBucket").value.trim(),
+      messagingSenderId: $("cfgMessagingSenderId").value.trim(),
+      appId: $("cfgAppId").value.trim(),
+      measurementId: $("cfgMeasurementId").value.trim()
+    };
+    if(!cfg.apiKey || !cfg.projectId || !cfg.appId){
+      const el = $("settingsMsg");
+      el.textContent = "กรุณากรอกอย่างน้อย API Key, Project ID และ App ID";
+      el.className = "form-msg error";
+      return;
+    }
+    setStoredConfig(cfg);
+    showToast("บันทึกการตั้งค่าแล้ว กำลังโหลดใหม่...");
+    setTimeout(() => location.reload(), 500);
+  });
+
+  $("settingsResetBtn").addEventListener("click", () => {
+    clearStoredConfig();
+    showToast("ล้างค่าแล้ว กำลังโหลดใหม่...");
+    setTimeout(() => location.reload(), 500);
+  });
+
+  /* =====================================================
+     7) เชื่อมต่อเว็บไซต์อื่น — สร้างโค้ดสำหรับวางในเว็บอื่น
+     ===================================================== */
+  // ทำให้ค่าที่จะแทรกลงใน string literal ของ JS ('...') ปลอดภัย
+  // ป้องกันกรณีค่ามี backslash, เครื่องหมายคำพูด หรือขึ้นบรรทัดใหม่ ซึ่งจะทำให้โค้ดที่สร้างออกมาพัง
+  function jsStringLiteral(val){
+    return "'" + String(val || "").replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/\n/g, "\\n").replace(/\r/g, "") + "'";
+  }
+
+  function buildConnectorSnippet(dataKey){
+    const cfg = firebaseConfig;
+    const key = dataKey || "external-data";
+    const lines = [
+      "<!-- ===== เริ่มโค้ดเชื่อมต่อฐานข้อมูล: คลังโค้ด ===== -->",
+      '<scr' + 'ipt src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></scr' + 'ipt>',
+      '<scr' + 'ipt src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></scr' + 'ipt>',
+      "<scr" + "ipt>",
+      "(function(){",
+      "  var firebaseConfig = {",
+      "    apiKey: " + jsStringLiteral(cfg.apiKey) + ",",
+      "    authDomain: " + jsStringLiteral(cfg.authDomain) + ",",
+      "    projectId: " + jsStringLiteral(cfg.projectId) + ",",
+      "    storageBucket: " + jsStringLiteral(cfg.storageBucket) + ",",
+      "    messagingSenderId: " + jsStringLiteral(cfg.messagingSenderId) + ",",
+      "    appId: " + jsStringLiteral(cfg.appId),
+      "  };",
+      "  if(typeof firebase === 'undefined'){",
+      "    console.error('โหลดไลบรารี Firebase ไม่สำเร็จ ตรวจสอบว่าไม่ได้บล็อก gstatic.com');",
+      "    return;",
+      "  }",
+      "  if(!firebase.apps || !firebase.apps.length){",
+      "    firebase.initializeApp(firebaseConfig);",
+      "  }",
+      "  var db = firebase.firestore();",
+      "  var DATA_KEY = " + jsStringLiteral(key) + ";",
+      "  var siteRef = db.collection('external_data').doc(DATA_KEY);",
+      "  var recordsRef = siteRef.collection('records');",
+      "",
+      "  // ใช้เรียกจากเว็บนี้เพื่อบันทึกข้อมูล เช่น จากฟอร์มติดต่อ:",
+      "  // FlameConnector.save({ name: 'สมชาย', email: 'a@b.com' });",
+      "  window.FlameConnector = {",
+      "    save: function(data){",
+      "      return siteRef.get().then(function(siteDoc){",
+      "        if(siteDoc.exists && siteDoc.data().suspended){",
+      "          return Promise.reject(new Error('เว็บไซต์นี้ถูกระงับการใช้งานฐานข้อมูลแล้ว'));",
+      "        }",
+      "        return recordsRef.add({",
+      "          data: data,",
+      "          createdAt: firebase.firestore.FieldValue.serverTimestamp()",
+      "        });",
+      "      });",
+      "    },",
+      "    loadAll: function(){",
+      "      return recordsRef.orderBy('createdAt','desc').get().then(function(snap){",
+      "        return snap.docs.map(function(d){ return Object.assign({ id: d.id }, d.data()); });",
+      "      });",
+      "    }",
+      "  };",
+      "})();",
+      "</scr" + "ipt>",
+      "<!-- ===== จบโค้ดเชื่อมต่อฐานข้อมูล ===== -->",
+      "<!--",
+      "วิธีใช้ในเว็บนี้:",
+      "  FlameConnector.save({ ...ข้อมูลที่ต้องการเก็บ... }).then(() => console.log('บันทึกแล้ว'));",
+      "  FlameConnector.loadAll().then(records => console.log(records));",
+      "",
+      "ข้อมูลทั้งหมดจากทุกเว็บที่ใช้โค้ดชุดนี้ (คนละ DATA_KEY) จะไปโผล่รวมกันใน",
+      "Firestore ที่ collection \"external_data\" ของโปรเจกต์ " + (cfg.projectId || ""),
+      "เข้าไปดู/จัดการได้ที่เมนู 🗄️ ฐานข้อมูล บน navbar ของแอปนี้ หรือที่ Firebase Console โดยตรง",
+      "-->"
+    ];
+    return lines.join("\n");
+  }
+
+  $("connectSiteBtn").addEventListener("click", () => {
+    if(!isConfigured){ showToast("กรุณาตั้งค่าฐานข้อมูลก่อน"); return; }
+    const defaultKey = slug($("projectNameInput").value || "project") + "-" + (currentId ? currentId.slice(0,6) : "site");
+    $("connectKeyInput").value = defaultKey;
+    $("connectSnippet").value = buildConnectorSnippet(sanitizeDataKey(defaultKey));
+    $("autoConnectInput").value = "";
+    $("autoConnectOutput").value = "";
+    $("autoConnectResultWrap").classList.add("hidden");
+    $("connectOverlay").classList.add("open");
+  });
+  function sanitizeDataKey(raw){
+    // Firestore doc id ห้ามมี "/" และห้ามว่าง
+    return (raw || "").trim().replace(/\//g, "-") || "external-data";
+  }
+  $("connectKeyInput").addEventListener("input", () => {
+    $("connectSnippet").value = buildConnectorSnippet(sanitizeDataKey($("connectKeyInput").value));
+  });
+  $("connectClose").addEventListener("click", () => $("connectOverlay").classList.remove("open"));
+  $("connectOverlay").addEventListener("click", (e) => { if(e.target === $("connectOverlay")) $("connectOverlay").classList.remove("open"); });
+  $("connectCopyBtn").addEventListener("click", async () => {
+    const text = $("connectSnippet").value;
+    const key = sanitizeDataKey($("connectKeyInput").value);
+    const siteName = $("projectNameInput").value.trim() || key;
+    try{
+      await navigator.clipboard.writeText(text);
+      showToast("คัดลอกโค้ดแล้ว");
+    }catch(e){
+      $("connectSnippet").select();
+      document.execCommand("copy");
+      showToast("คัดลอกโค้ดแล้ว");
+    }
+    // ลงทะเบียนเว็บไซต์นี้ในเมนู 🗄️ ฐานข้อมูล โดยอัตโนมัติ
+    try{
+      if(currentUser && db){
+        await sitesRef().doc(key).set({
+          name: siteName,
+          status: "active",
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge:true });
+        await db.collection("external_data").doc(key).set({
+          name: siteName,
+          suspended: false,
+          ownerUid: currentUser.uid,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge:true });
+      }
+    }catch(err){ console.error("ลงทะเบียนเว็บไซต์ไม่สำเร็จ:", err); }
+  });
+
+  /* ---------------- 🔁 แปลงโค้ดอัตโนมัติ: วางโค้ดเว็บอื่น + แทรกโค้ดเชื่อมต่อให้เลย ---------------- */
+  $("autoConnectBtn").addEventListener("click", () => {
+    const src = $("autoConnectInput").value;
+    if(!src.trim()){ showToast("กรุณาวางโค้ด HTML ของเว็บไซต์นั้นก่อน"); return; }
+    const snippet = $("connectSnippet").value;
+    if(!snippet.trim()){ showToast("ยังไม่มีโค้ดเชื่อมต่อ กรุณาเปิดหน้านี้ผ่านปุ่ม 🔌 เชื่อมต่อเว็บอื่น อีกครั้ง"); return; }
+    let merged;
+    if(/<\/body\s*>/i.test(src)){
+      merged = src.replace(/<\/body\s*>/i, snippet + "\n</body>");
+    } else {
+      // ไม่พบ </body> ในโค้ดที่วางมา ให้ต่อโค้ดเชื่อมต่อไว้ท้ายไฟล์แทน
+      merged = src + "\n\n" + snippet;
+    }
+    $("autoConnectOutput").value = merged;
+    $("autoConnectResultWrap").classList.remove("hidden");
+    showToast("แทรกโค้ดเชื่อมต่อให้อัตโนมัติแล้ว");
+  });
+  $("autoConnectCopyBtn").addEventListener("click", async () => {
+    const text = $("autoConnectOutput").value;
+    try{ await navigator.clipboard.writeText(text); showToast("คัดลอกผลลัพธ์แล้ว"); }
+    catch(e){ $("autoConnectOutput").select(); document.execCommand("copy"); showToast("คัดลอกผลลัพธ์แล้ว"); }
+  });
+  $("autoConnectDownloadBtn").addEventListener("click", () => {
+    downloadBlob(new Blob([$("autoConnectOutput").value], {type:"text/html"}), slug($("projectNameInput").value || "connected-site") + "-connected.html");
+    showToast("ดาวน์โหลดไฟล์แล้ว");
+  });
+
+  /* =====================================================
+     8) ฐานข้อมูล — จัดการเว็บไซต์ภายนอกที่เชื่อมต่อ และข้อมูลที่ส่งเข้ามา
+     ===================================================== */
+  let dbSites = [];
+  let unsubscribeSites = null;
+  let currentSiteKey = null;
+  let currentSiteRecords = [];
+  let unsubscribeRecords = null;
+  let pendingEditRecordId = null;
+
+  function sitesRef(){
+    return db.collection("users").doc(currentUser.uid).collection("sites");
+  }
+
+  function listenSites(){
+    if(unsubscribeSites) unsubscribeSites();
+    unsubscribeSites = sitesRef().orderBy("updatedAt","desc").onSnapshot((snap) => {
+      dbSites = snap.docs.map(d => {
+        const data = d.data();
+        return {
+          key:d.id, name:data.name || d.id, status:data.status || "active",
+          updatedAt: data.updatedAt && data.updatedAt.toMillis ? data.updatedAt.toMillis() : Date.now()
+        };
+      });
+      if(!$("dbView").classList.contains("hidden")) renderDbGrid();
+      if(currentSiteKey && !$("dbSiteView").classList.contains("hidden")){
+        updateSiteStatusUI(dbSites.find(s => s.key === currentSiteKey));
+      }
+    }, (err) => { console.error(err); });
+  }
+
+  function showDbView(){
+    if(!currentUser){ return; }
+    $("dashView").classList.add("hidden");
+    $("editorView").classList.add("hidden");
+    $("dbSiteView").classList.add("hidden");
+    $("dbView").classList.remove("hidden");
+    renderDbGrid();
+  }
+  $("navDbBtn").addEventListener("click", showDbView);
+  $("dbBackBtn").addEventListener("click", showDashboard);
+
+  function renderDbGrid(){
+    const grid = $("dbSiteGrid");
+    if(dbSites.length === 0){
+      grid.innerHTML = `<div class="empty" style="grid-column:1/-1">
+        <div class="big">🗄️</div>
+        <p>ยังไม่มีเว็บไซต์ที่เชื่อมต่อ — เปิดโปรเจกต์แล้วกด "🔌 เชื่อมต่อเว็บอื่น" จากนั้นกด "คัดลอกโค้ด" เพื่อให้รายการมาโผล่ที่นี่</p>
+      </div>`;
+      return;
+    }
+    grid.innerHTML = "";
+    dbSites.forEach(s => {
+      const suspended = s.status === "suspended";
+      const card = document.createElement("div");
+      card.className = "card";
+      card.innerHTML = `
+        <div class="c-name">${escapeHtml(s.name)}</div>
+        <div class="c-time">คีย์: ${escapeHtml(s.key)}</div>
+        <div class="c-time">${suspended ? "🔴 ถูกระงับ" : "🟢 ใช้งานได้"}</div>
+        <div class="c-actions">
+          <button class="open-btn">เปิด</button>
+        </div>
+      `;
+      card.querySelector(".open-btn").addEventListener("click", () => openDbSite(s.key));
+      grid.appendChild(card);
+    });
+  }
+
+  function openDbSite(key){
+    currentSiteKey = key;
+    $("dbView").classList.add("hidden");
+    $("dbSiteView").classList.remove("hidden");
+    const site = dbSites.find(s => s.key === key);
+    $("dbSiteName").textContent = site ? site.name : key;
+    $("dbSiteKeyLabel").textContent = "คีย์: " + key;
+    updateSiteStatusUI(site);
+    listenRecords(key);
+  }
+
+  function updateSiteStatusUI(site){
+    const suspended = !!(site && site.status === "suspended");
+    const pill = $("dbSiteStatusPill");
+    pill.classList.toggle("saved", !suspended);
+    pill.classList.remove("saving");
+    $("dbSiteStatusText").textContent = suspended ? "🔴 ถูกระงับ" : "🟢 ใช้งานได้";
+    $("dbSiteToggleBtn").textContent = suspended ? "เปิดใช้งาน" : "ระงับการใช้งาน";
+  }
+
+  $("dbSiteBackBtn").addEventListener("click", () => {
+    if(unsubscribeRecords){ unsubscribeRecords(); unsubscribeRecords = null; }
+    currentSiteKey = null;
+    $("dbSiteView").classList.add("hidden");
+    $("dbView").classList.remove("hidden");
+  });
+
+  function listenRecords(key){
+    if(unsubscribeRecords) unsubscribeRecords();
+    unsubscribeRecords = db.collection("external_data").doc(key).collection("records")
+      .orderBy("createdAt","desc").onSnapshot((snap) => {
+        currentSiteRecords = snap.docs.map(d => {
+          const data = d.data();
+          return {
+            id:d.id, data:data.data,
+            createdAt: data.createdAt && data.createdAt.toMillis ? data.createdAt.toMillis() : null
+          };
+        });
+        renderRecords();
+      }, (err) => { console.error(err); showToast("โหลดข้อมูลไม่สำเร็จ: " + err.message); });
+  }
+
+  function renderRecords(){
+    const wrap = $("dbRecordsList");
+    if(currentSiteRecords.length === 0){
+      wrap.innerHTML = `<div class="empty"><div class="big">📭</div><p>ยังไม่มีข้อมูลที่ส่งเข้ามาจากเว็บนี้</p></div>`;
+      return;
+    }
+    wrap.innerHTML = "";
+    currentSiteRecords.forEach(r => {
+      let pretty;
+      try{ pretty = JSON.stringify(r.data, null, 2); }catch(e){ pretty = String(r.data); }
+      const box = document.createElement("div");
+      box.className = "panel";
+      box.style.marginBottom = "14px";
+      box.innerHTML = `
+        <div class="panel-head">
+          <span>${r.createdAt ? new Date(r.createdAt).toLocaleString("th-TH") : "เมื่อสักครู่"}</span>
+          <div style="display:flex; gap:14px;">
+            <button class="link-btn rec-edit">แก้ไข</button>
+            <button class="link-btn rec-del" style="color:var(--danger);">ลบ</button>
+          </div>
+        </div>
+        <pre style="margin:0; padding:14px; font-family:'SFMono-Regular',Consolas,monospace; font-size:12.5px; background:#fbfbfd; overflow:auto; max-height:260px; white-space:pre-wrap; word-break:break-word;">${escapeHtml(pretty)}</pre>
+      `;
+      box.querySelector(".rec-edit").addEventListener("click", () => openEditRecordModal(r));
+      box.querySelector(".rec-del").addEventListener("click", () => confirmDeleteRecord(r));
+      wrap.appendChild(box);
+    });
+  }
+
+  function confirmDeleteRecord(r){
+    openModal({
+      title:"ลบข้อมูลนี้?", desc:"รายการนี้จะถูกลบอย่างถาวรและไม่สามารถกู้คืนได้", hideInput:true, confirmText:"ลบ", danger:true,
+      onConfirm: async () => {
+        try{
+          await db.collection("external_data").doc(currentSiteKey).collection("records").doc(r.id).delete();
+          showToast("ลบข้อมูลแล้ว");
+        }catch(err){ showToast("ลบไม่สำเร็จ: " + err.message); }
+      }
+    });
+  }
+
+  function openEditRecordModal(r){
+    pendingEditRecordId = r.id;
+    let pretty;
+    try{ pretty = JSON.stringify(r.data, null, 2); }catch(e){ pretty = String(r.data); }
+    $("editRecordSnippet").value = pretty;
+    $("editRecordMsg").className = "form-msg";
+    $("editRecordOverlay").classList.add("open");
+  }
+  $("editRecordCancel").addEventListener("click", () => $("editRecordOverlay").classList.remove("open"));
+  $("editRecordOverlay").addEventListener("click", (e) => { if(e.target === $("editRecordOverlay")) $("editRecordOverlay").classList.remove("open"); });
+  $("editRecordSaveBtn").addEventListener("click", async () => {
+    let parsed;
+    try{
+      parsed = JSON.parse($("editRecordSnippet").value);
+    }catch(err){
+      const el = $("editRecordMsg");
+      el.textContent = "รูปแบบ JSON ไม่ถูกต้อง: " + err.message;
+      el.className = "form-msg error";
+      return;
+    }
+    try{
+      await db.collection("external_data").doc(currentSiteKey).collection("records").doc(pendingEditRecordId).update({ data: parsed });
+      showToast("บันทึกข้อมูลแล้ว");
+      $("editRecordOverlay").classList.remove("open");
+    }catch(err){
+      const el = $("editRecordMsg");
+      el.textContent = "บันทึกไม่สำเร็จ: " + err.message;
+      el.className = "form-msg error";
+    }
+  });
+
+  $("dbSiteToggleBtn").addEventListener("click", async () => {
+    const site = dbSites.find(s => s.key === currentSiteKey);
+    const suspended = !(site && site.status === "suspended");
+    try{
+      await sitesRef().doc(currentSiteKey).set({
+        status: suspended ? "suspended" : "active",
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge:true });
+      await db.collection("external_data").doc(currentSiteKey).set({
+        suspended: suspended,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge:true });
+      showToast(suspended ? "ระงับการใช้งานแล้ว" : "เปิดใช้งานแล้ว");
+    }catch(err){ showToast("อัปเดตสถานะไม่สำเร็จ: " + err.message); }
+  });
+
+  $("dbSiteDeleteAllBtn").addEventListener("click", () => {
+    openModal({
+      title:"ลบชุดข้อมูลนี้ทั้งหมด?",
+      desc:"ข้อมูลทั้งหมดของเว็บไซต์นี้ รวมถึงรายการเชื่อมต่อในเมนูนี้ จะถูกลบอย่างถาวรและไม่สามารถกู้คืนได้",
+      hideInput:true, confirmText:"ลบทั้งหมด", danger:true,
+      onConfirm: async () => {
+        const key = currentSiteKey;
+        try{
+          const recSnap = await db.collection("external_data").doc(key).collection("records").get();
+          await Promise.all(recSnap.docs.map(d => d.ref.delete()));
+          await db.collection("external_data").doc(key).delete();
+          await sitesRef().doc(key).delete();
+          showToast("ลบชุดข้อมูลแล้ว");
+          if(unsubscribeRecords){ unsubscribeRecords(); unsubscribeRecords = null; }
+          currentSiteKey = null;
+          $("dbSiteView").classList.add("hidden");
+          $("dbView").classList.remove("hidden");
+        }catch(err){ showToast("ลบไม่สำเร็จ: " + err.message); }
+      }
+    });
+  });
+
+  /* =====================================================
+     9) 🌐 เผยแพร่โปรเจกต์เป็นเว็บไซต์ — ได้ลิงก์สาธารณะ เปิดดูได้โดยไม่ต้องล็อกอิน
+     ===================================================== */
+  function publishedUrlFor(id){
+    return location.origin + location.pathname + "?site=" + encodeURIComponent(id);
+  }
+
+  async function refreshPublishStatus(){
+    const area = $("publishStatusArea");
+    area.innerHTML = `<p style="font-size:12.5px; color:var(--muted);">กำลังตรวจสอบสถานะ...</p>`;
+    try{
+      const doc = await db.collection("published").doc(currentId).get();
+      if(doc.exists){
+        const url = publishedUrlFor(currentId);
+        area.innerHTML = `
+          <div class="field">
+            <label>🟢 เผยแพร่อยู่ — ลิงก์สาธารณะ</label>
+            <input type="text" id="publishLinkInput" readonly value="${escapeHtml(url)}">
+          </div>
+          <div class="modal-actions" style="justify-content:flex-start; margin-bottom:6px;">
+            <button class="cancel" id="publishCopyLinkBtn" style="width:auto;">คัดลอกลิงก์</button>
+            <button class="cancel" id="publishUnpublishBtn" style="width:auto; color:var(--danger);">ยกเลิกการเผยแพร่</button>
+          </div>
+        `;
+        $("publishActionBtn").textContent = "อัปเดตเวอร์ชันที่เผยแพร่";
+        $("publishCopyLinkBtn").addEventListener("click", async () => {
+          try{ await navigator.clipboard.writeText(url); showToast("คัดลอกลิงก์แล้ว"); }
+          catch(e){ $("publishLinkInput").select(); document.execCommand("copy"); showToast("คัดลอกลิงก์แล้ว"); }
+        });
+        $("publishUnpublishBtn").addEventListener("click", async () => {
+          try{
+            await db.collection("published").doc(currentId).delete();
+            showToast("ยกเลิกการเผยแพร่แล้ว");
+            refreshPublishStatus();
+          }catch(err){ showToast("ยกเลิกไม่สำเร็จ: " + err.message); }
+        });
+      } else {
+        area.innerHTML = `<p style="font-size:12.5px; color:var(--muted);">โปรเจกต์นี้ยังไม่ได้เผยแพร่</p>`;
+        $("publishActionBtn").textContent = "เผยแพร่ตอนนี้";
+      }
+    }catch(err){
+      area.innerHTML = `<p style="font-size:12.5px; color:var(--danger);">ตรวจสอบสถานะไม่สำเร็จ: ${escapeHtml(err.message)}</p>`;
+    }
+  }
+
+  $("publishSiteBtn").addEventListener("click", () => {
+    if(!currentId){ showToast("กรุณาเปิดโปรเจกต์ก่อน"); return; }
+    $("publishOverlay").classList.add("open");
+    refreshPublishStatus();
+  });
+  $("publishClose").addEventListener("click", () => $("publishOverlay").classList.remove("open"));
+  $("publishOverlay").addEventListener("click", (e) => { if(e.target === $("publishOverlay")) $("publishOverlay").classList.remove("open"); });
+
+  $("publishActionBtn").addEventListener("click", async () => {
+    if(!currentId) return;
+    currentData[currentFile] = $("codeArea").value;
+    const fullHtml = buildFullDocument(currentData.css, currentData.html, currentData.js, false);
+    const name = $("projectNameInput").value.trim() || "โปรเจกต์ไม่มีชื่อ";
+    $("publishActionBtn").disabled = true;
+    try{
+      await db.collection("published").doc(currentId).set({
+        html: fullHtml, name: name, ownerUid: currentUser.uid,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge:true });
+      showToast("เผยแพร่แล้ว");
+      refreshPublishStatus();
+    }catch(err){ showToast("เผยแพร่ไม่สำเร็จ: " + err.message); }
+    $("publishActionBtn").disabled = false;
+  });
+
+  setAuthMode("login");
+})();
+</script>
+</body>
+</html>
