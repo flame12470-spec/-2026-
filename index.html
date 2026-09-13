@@ -1111,6 +1111,15 @@ body{font-size:var(--font-size-base,16px);font-weight:var(--font-weight,400);}
 .content-block.text-block{font-size:var(--font-size-content,16px);}
 /* ค่าเริ่มต้นของเนื้อหาไม่ไปทับน้ำหนักของหัวข้อ/ปุ่ม/ตัวหนา */
 .content-block.text-block{font-weight:var(--font-weight,400);}
+
+<style id="account-role-management-style">
+.account-role-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.account-status{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:5px}
+.account-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.appeal-card{margin-top:14px;padding:14px;border:1px solid rgba(101,147,199,.18);border-radius:14px;background:rgba(101,147,199,.06)}
+.temp-chat-note{font-size:11.5px;color:var(--muted);line-height:1.7;margin-top:8px}
+@media(max-width:650px){.account-role-grid{grid-template-columns:1fr}.account-actions{width:100%;justify-content:flex-start}}
+</style>
 </style>
 </head>
 <body>
@@ -1145,6 +1154,38 @@ body{font-size:var(--font-size-base,16px);font-weight:var(--font-weight,400);}
 <section id="adminUsers" class="hidden"></section>
 <section id="adminChat" class="hidden"></section>
 <div class="modal-actions"><button class="pill" onclick="confirmLogoutAdmin()">ออกจาก Admin / ปิด</button></div></div></div>
+
+<div class="overlay" id="accountModal"><div class="modal wide">
+  <div class="setting-head"><div><b>บัญชีของฉัน</b><small id="accountModalSub">ตรวจสอบสถานะบัญชีและข้อมูลการใช้งาน</small></div><button class="pill" onclick="closeOverlay(\'accountModal\')">✕</button></div>
+  <div id="accountPanel"></div>
+</div></div>
+
+<div class="overlay" id="bannedAppealModal"><div class="modal">
+  <div class="setting-head"><div><b>บัญชีถูกระงับการใช้งาน</b><small>คุณยังสามารถติดต่อแอดมินแบบชั่วคราวเพื่อยื่นคำขอเปิดบัญชีได้</small></div></div>
+  <div class="field"><label>ชื่อจริง</label><input id="appealFirstName"></div>
+  <div class="field"><label>นามสกุล</label><input id="appealLastName"></div>
+  <div class="field"><label>อีเมล</label><input id="appealEmail" type="email"></div>
+  <div class="field"><label>อธิบายปัญหา / เหตุผลที่ขอเปิดบัญชี</label><textarea id="appealProblem" placeholder="ระบุรายละเอียดปัญหาที่พบ..."></textarea></div>
+  <div class="err" id="appealErr"></div>
+  <div class="modal-actions"><button class="pill" onclick="closeOverlay(\'bannedAppealModal\')">ยกเลิก</button><button class="pill solid" onclick="submitAccountAppeal()">ส่งคำขอเปิดบัญชี</button></div>
+</div></div>
+
+<div class="overlay" id="tempSupportModal"><div class="modal chat-modal">
+  <div class="chat-header"><b>ติดต่อแอดมินชั่วคราว</b><button class="pill" onclick="closeTempSupport()">✕</button></div>
+  <div id="tempSupportMessages" class="chat-messages"></div>
+  <div class="chat-input-row"><input id="tempSupportInput" placeholder="พิมพ์ข้อความถึงแอดมิน..." onkeydown="if(event.key===\'Enter\')sendTempSupport()"><button class="pill solid" onclick="sendTempSupport()">ส่ง</button></div>
+</div></div>
+
+<div class="overlay" id="adminUserEditModal"><div class="modal">
+  <div class="setting-head"><div><b>จัดการบัญชีผู้ใช้</b><small id="adminUserEditEmail"></small></div><button class="pill" onclick="closeOverlay(\'adminUserEditModal\')">✕</button></div>
+  <input type="hidden" id="adminEditUid">
+  <div class="field"><label>ประเภทบัญชี</label><select id="adminEditRole"><option value="student">นักเรียนทั่วไป</option><option value="admin">แอดมิน</option></select></div>
+  <div class="field"><label>สถานะบัญชี</label><select id="adminEditBanned"><option value="false">ปกติ — ใช้งานได้</option><option value="true">ระงับการใช้งาน</option></select></div>
+  <div class="field"><label>ตั้งรหัสผ่านใหม่</label><input id="adminEditPassword" type="password" minlength="6" placeholder="อย่างน้อย 6 ตัวอักษร"></div>
+  <div class="temp-chat-note">เพื่อความปลอดภัย ระบบจะไม่แสดงหรือเก็บรหัสผ่านเดิมแบบข้อความธรรมดา หากต้องการเปลี่ยน ให้ตั้งรหัสใหม่ผ่านการดำเนินการที่ได้รับอนุญาต</div>
+  <div class="err" id="adminEditErr"></div>
+  <div class="modal-actions"><button class="pill" onclick="closeOverlay(\'adminUserEditModal\')">ยกเลิก</button><button class="pill solid" onclick="saveAdminUserEdit()">บันทึกการเปลี่ยนแปลง</button></div>
+</div></div>
 
 <div class="overlay" id="builderTextModal"><div class="modal"><h3 id="builderTextModalTitle">ข้อความ</h3>
 <div class="field"><label>ข้อความ</label><textarea id="builderTextInput" placeholder="พิมพ์ข้อความ..."></textarea></div>
@@ -1197,6 +1238,7 @@ const auth=getAuth(initializeApp(firebaseConfig));window.__auth=auth;window.__au
 onAuthStateChanged(auth,async u=>{
   window.__currentUser=u;
   window.__isAdmin=!!(u&&u.email&&window.__ADMIN_EMAIL&&u.email.toLowerCase()===window.__ADMIN_EMAIL.toLowerCase());
+  if(u&&window.loadMyAccountAccess) await window.loadMyAccountAccess();
   renderAuth();renderMenu();renderActivePage();
   if(u&&window.syncProfile)window.syncProfile();
 });
@@ -1210,7 +1252,7 @@ const HOME_ID="home";
 
 const ICONS=['🏠','📄','📢','🛒','🎮','📚','🎵','🎬','💬','⚙️','🧾','📊','🗂️','🎯','⭐','❤️','🔥','🚀','🎁','📷','🗓️','✅','📌','🔔','🌐','💡','🔒','🧩','🏆','☕','🔗'];
 let pages=[],links=[],settings={},activeId=HOME_ID,authTab="login",editingPageRow=null,editingLinkRow=null,builderBlocks=[];
-let conversations=[],usersList=[],activeConvUserId=null,adminChatTimer=null,chatPollTimer=null;
+let conversations=[],usersList=[],activeConvUserId=null,adminChatTimer=null,chatPollTimer=null,accountInfo=null,tempSupportId=null,tempSupportTimer=null;
 
 const $=id=>document.getElementById(id),esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
 
@@ -1309,7 +1351,7 @@ function renderAuth(){
   let themeBtn='<button class="theme-btn" id="themeBtn" onclick="toggleTheme()"><i class="fa-solid fa-moon"></i></button>';
   if(!u){b.innerHTML=themeBtn+'<span>ยังไม่ได้เข้าสู่ระบบ</span><button class="pill solid" onclick="openAuthModal()">เข้าสู่ระบบ</button>';applyTheme(localStorage.getItem("np404_theme")||"light");return}
   let p=JSON.parse(localStorage.getItem("np404_profile")||"{}"),name=p.username||u.displayName||u.email;
-  b.innerHTML=themeBtn+'<span class="user-name">'+esc(name)+'</span>'+(window.__isAdmin?'<button class="pill solid" onclick="openAdminPanel()">แผงแอดมิน</button>':"")+'<button class="pill" onclick="logout()">ออกจากระบบ</button>';
+  b.innerHTML=themeBtn+'<span class="user-name">'+esc(name)+'</span><button class="pill" onclick="openAccountModal()">บัญชี</button>'+(window.__isAdmin?'<button class="pill solid" onclick="openAdminPanel()">แผงแอดมิน</button>':"")+'<button class="pill" onclick="logout()">ออกจากระบบ</button>';
   applyTheme(localStorage.getItem("np404_theme")||"light");
 }
 async function logout(){if(window.__isAdmin){confirmAction("ออกจาก Admin","ต้องการออกจากระบบ Admin ใช่หรือไม่?",async()=>{await window.doLogout();toast("ออกจากระบบแล้ว")})}else await window.doLogout()}window.logout=logout;
@@ -1368,7 +1410,8 @@ function menu(x,isHome,fallbackIcon){
   return e;
 }
 function renderActivePage(){let c=$("pageContent");c.classList.remove("full-code");c.classList.toggle("home",activeId===HOME_ID);
-if(settings.maintenance==="true"&&!window.__isAdmin){
+if(window.__accountBanned&&!window.__isAdmin&&activeId!==HOME_ID){c.innerHTML='<div class="empty"><div style="font-size:42px;color:var(--danger)"><i class="fa-solid fa-user-lock"></i></div><h2 style="margin:8px 0">บัญชีถูกระงับการใช้งาน</h2><p>ไม่สามารถใช้งานเมนูของบัญชีได้ในขณะนี้</p><div class="account-actions" style="justify-content:center;margin-top:14px"><button class="pill solid" onclick="openAppealForCurrentUser()">ยื่นคำขอเปิดบัญชี</button><button class="pill" onclick="openTempSupport()">ติดต่อแอดมินชั่วคราว</button></div></div>';return}
+ if(settings.maintenance==="true"&&!window.__isAdmin){
   const custom=String(settings.maintenanceCode||"").trim();
   if(custom){c.classList.add("full-code");let frame=document.createElement("iframe");frame.className="code-frame";frame.title="503 Maintenance";frame.setAttribute("sandbox","allow-scripts allow-forms allow-popups allow-modals");frame.srcdoc=custom;c.appendChild(frame)}
   else c.innerHTML='<div class="maintenance"><div><div class="code">503</div><div class="spinner" aria-label="กำลังปรับปรุงระบบ"></div><h1>ระบบขัดข้องชั่วคราว</h1><p>ขณะนี้ระบบอยู่ระหว่างการปรับปรุง กรุณาลองใหม่ภายหลัง</p></div></div>';
@@ -1532,8 +1575,39 @@ window.renderMenu=renderMenu;window.renderActivePage=renderActivePage;
 
 /* ---------------- Auth ---------------- */
 function openAuthModal(){$("authModal").classList.add("show");setAuthTab("login");$("authErr").innerText=""}window.openAuthModal=openAuthModal;
+
+async function loadMyAccountAccess(){
+  if(!window.__currentUser){accountInfo=null;return}
+  try{
+    accountInfo=await apiGetAuth("getMyAccount");
+    window.__isAdmin=accountInfo?.role==="admin";
+    window.__accountBanned=!!accountInfo?.banned;
+  }catch(e){
+    window.__accountBanned=false;
+  }
+}
+window.loadMyAccountAccess=loadMyAccountAccess;
+
+function openAccountModal(){
+  if(!window.__currentUser){openAuthModal();return}
+  renderAccountPanel();$("accountModal").classList.add("show");
+}
+window.openAccountModal=openAccountModal;
+function renderAccountPanel(){
+  const p=accountInfo||{}; const u=window.__currentUser; if(!u)return;
+  const name=esc(p.username||p.name||u.displayName||u.email);
+  const role=p.role==="admin"?"แอดมิน":"นักเรียนทั่วไป";
+  const status=p.banned?"ถูกระงับ":"ปกติ";
+  $("accountPanel").innerHTML=`<div class="setting-card"><div class="setting-head"><div><b>${name}</b><small>${esc(u.email||"")}</small></div><span class="badge ${p.banned?'off':'on'}">${status}</span></div><div class="account-status"><span class="badge on">ประเภท: ${role}</span></div>${p.banned?`<div class="appeal-card"><b>บัญชีนี้ถูกระงับ</b><div class="temp-chat-note">คุณไม่สามารถใช้งานหน้าเมนูสำหรับบัญชีได้ แต่สามารถยื่นคำขอเปิดบัญชีและติดต่อแอดมินแบบชั่วคราวได้</div><div class="account-actions" style="margin-top:10px"><button class="pill solid" onclick="openAppealForCurrentUser()">ยื่นคำขอเปิดบัญชี</button><button class="pill" onclick="openTempSupport()">ติดต่อแอดมินชั่วคราว</button></div></div>`:`<div class="account-actions" style="margin-top:12px"><button class="pill" onclick="sendMyPasswordReset()">เปลี่ยนรหัสผ่าน</button></div>`}</div>`;
+}
+window.renderAccountPanel=renderAccountPanel;
+async function sendMyPasswordReset(){try{await window.__authFns.sendPasswordResetEmail(window.__auth,window.__currentUser.email);toast("ส่งลิงก์เปลี่ยนรหัสผ่านไปยังอีเมลแล้ว")}catch(e){toast(e.message,false)}}
+window.sendMyPasswordReset=sendMyPasswordReset;
+function openAppealForCurrentUser(){const p=accountInfo||{};$("appealFirstName").value=p.firstName||"";$("appealLastName").value=p.lastName||"";$("appealEmail").value=window.__currentUser?.email||p.email||"";$("appealProblem").value="";$("appealErr").innerText="";$("bannedAppealModal").classList.add("show")}window.openAppealForCurrentUser=openAppealForCurrentUser;
+async function submitAccountAppeal(){const first=$("appealFirstName").value.trim(),last=$("appealLastName").value.trim(),email=$("appealEmail").value.trim(),problem=$("appealProblem").value.trim();if(!first||!last||!email||!problem){$("appealErr").innerText="กรุณากรอกข้อมูลให้ครบ";return}try{await apiPost({action:"submitAccountAppeal",firstName:first,lastName:last,email,problem,uid:window.__currentUser?.uid||""});closeOverlay("bannedAppealModal");toast("ส่งคำขอเปิดบัญชีให้แอดมินแล้ว")}catch(e){$("appealErr").innerText=e.message||"ไม่สามารถส่งคำขอได้"}}window.submitAccountAppeal=submitAccountAppeal;
+
 function setAuthTab(t){authTab=t;$("tabLogin").classList.toggle("active",t==="login");$("tabRegister").classList.toggle("active",t==="register");$("registerFields").classList.toggle("hidden",t!=="register");$("authSubmitBtn").innerText=t==="login"?"เข้าสู่ระบบ":"สมัครสมาชิก"}window.setAuthTab=setAuthTab;
-async function submitAuth(){let err=$("authErr");err.innerText="";try{let email=$("authEmail").value.trim(),pass=$("authPassword").value;if(!email||!pass)throw Error("กรุณากรอกอีเมลและรหัสผ่าน");if(authTab==="register"){let f=$("authFirstName").value.trim(),l=$("authLastName").value.trim(),u=$("authUsername").value.trim();if(!f||!l||!u)throw Error("กรุณากรอกชื่อจริง นามสกุล และชื่อแอคเค้า");let c=await window.__authFns.createUserWithEmailAndPassword(window.__auth,email,pass);await window.__authFns.updateProfile(c.user,{displayName:f+" "+l});localStorage.setItem("np404_profile",JSON.stringify({firstName:f,lastName:l,username:u,email}))}else await window.__authFns.signInWithEmailAndPassword(window.__auth,email,pass);closeOverlay("authModal");toast(authTab==="login"?"เข้าสู่ระบบสำเร็จ":"สมัครสมาชิกสำเร็จ")}catch(e){err.innerText=({"auth/invalid-email":"อีเมลไม่ถูกต้อง","auth/user-not-found":"ไม่พบบัญชีนี้","auth/wrong-password":"รหัสผ่านไม่ถูกต้อง","auth/invalid-credential":"อีเมลหรือรหัสผ่านไม่ถูกต้อง","auth/email-already-in-use":"อีเมลนี้ถูกใช้ไปแล้ว","auth/weak-password":"รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร"}[e.code]||e.message||"เกิดข้อผิดพลาด")}}window.submitAuth=submitAuth;
+async function submitAuth(){let err=$("authErr");err.innerText="";try{let email=$("authEmail").value.trim(),pass=$("authPassword").value;if(!email||!pass)throw Error("กรุณากรอกอีเมลและรหัสผ่าน");if(authTab==="register"){let f=$("authFirstName").value.trim(),l=$("authLastName").value.trim(),u=$("authUsername").value.trim();if(!f||!l||!u)throw Error("กรุณากรอกชื่อจริง นามสกุล และชื่อแอคเค้า");let c=await window.__authFns.createUserWithEmailAndPassword(window.__auth,email,pass);await window.__authFns.updateProfile(c.user,{displayName:f+" "+l});localStorage.setItem("np404_profile",JSON.stringify({firstName:f,lastName:l,username:u,email}))}else await window.__authFns.signInWithEmailAndPassword(window.__auth,email,pass);await loadMyAccountAccess();if(window.__accountBanned){closeOverlay("authModal");toast("บัญชีนี้ถูกระงับการใช้งาน",false);setTimeout(openAccountModal,250)}else{closeOverlay("authModal");toast(authTab==="login"?"เข้าสู่ระบบสำเร็จ":"สมัครสมาชิกสำเร็จ")}}catch(e){err.innerText=({"auth/invalid-email":"อีเมลไม่ถูกต้อง","auth/user-not-found":"ไม่พบบัญชีนี้","auth/wrong-password":"รหัสผ่านไม่ถูกต้อง","auth/invalid-credential":"อีเมลหรือรหัสผ่านไม่ถูกต้อง","auth/email-already-in-use":"อีเมลนี้ถูกใช้ไปแล้ว","auth/weak-password":"รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร"}[e.code]||e.message||"เกิดข้อผิดพลาด")}}window.submitAuth=submitAuth;
 window.syncProfile=async function(){try{let p=JSON.parse(localStorage.getItem("np404_profile")||"{}");await apiPost({action:"registerProfile",username:p.username,firstName:p.firstName,lastName:p.lastName})}catch(e){/* เงียบไว้ ไม่รบกวนผู้ใช้ */}}
 
 /* ---------------- Admin: system/pages/links/popup (เดิม + ปรับปรุง) ---------------- */
@@ -1644,10 +1718,19 @@ window.snoozePopup=snoozePopup;
 
 /* ---------------- Admin: บัญชีผู้ใช้ ---------------- */
 async function loadUsers(){try{usersList=await apiGetAuth("getUsers");renderUsers()}catch(e){$("adminUsers").innerHTML='<div class="empty">'+esc(e.message)+'</div>'}}
-function renderUsers(){let b=$("adminUsers");if(!usersList.length){b.innerHTML='<div class="empty">ยังไม่มีผู้ใช้ลงทะเบียนในระบบ</div>';return}
-  b.innerHTML='<div style="margin-bottom:10px;color:var(--muted);font-size:12px">ทั้งหมด '+usersList.length+' บัญชี</div>'+usersList.map(u=>
-  '<div class="admin-row"><div class="admin-info"><b>'+esc(u.username||u.name||u.email||"ผู้ใช้")+' '+(u.role==="admin"?'<span class="badge on">ADMIN</span>':"")+'</b><small>'+esc(u.email)+' · สมัคร '+fmtDate(u.createdAt)+' · เข้าระบบล่าสุด '+fmtDate(u.lastSeen)+'</small></div><div class="admin-actions"><span class="badge '+(u.banned?"off":"on")+'">'+(u.banned?"ถูกระงับ":"ปกติ")+'</span>'+(u.role==="admin"?"":'<label class="switch"><input type="checkbox" '+(u.banned?"":"checked")+' onchange="toggleBan(\''+u.uid+'\',!this.checked)"><span class="slider"></span></label>')+'</div></div>'
-  ).join("")}
+function renderUsers(){
+  let b=$("adminUsers");
+  if(!usersList.length){b.innerHTML='<div class="empty">ยังไม่มีผู้ใช้ลงทะเบียนในระบบ</div>';return}
+  b.innerHTML='<div style="margin-bottom:10px;color:var(--muted);font-size:12px">ทั้งหมด '+usersList.length+' บัญชี</div>'+usersList.map(u=>{
+    let role=u.role==="admin"?"แอดมิน":"นักเรียนทั่วไป";
+    let uid=esc(u.uid||"").replace(/'/g,"&#039;");
+    return `<div class="admin-row"><div class="admin-info"><b>${esc(u.username||u.name||u.email||"ผู้ใช้")} ${u.role==="admin"?'<span class="badge on">ADMIN</span>':''}</b><small>${esc(u.email||'')} · ประเภท ${role} · สมัคร ${fmtDate(u.createdAt)} · เข้าระบบล่าสุด ${fmtDate(u.lastSeen)}</small><div class="account-status"><span class="badge ${u.banned?'off':'on'}">${u.banned?'ถูกระงับ':'ปกติ'}</span></div></div><div class="admin-actions"><button onclick="openAdminUserEdit('${uid}')">จัดการ</button>${u.role==="admin"?'':'<button class="danger" onclick="deleteUserConfirm(\''+uid+'\')">ลบบัญชี</button>'}</div></div>`;
+  }).join('');
+}
+
+async function openAdminUserEdit(uid){const u=usersList.find(x=>String(x.uid)===String(uid));if(!u)return;$("adminEditUid").value=u.uid;$("adminEditRole").value=u.role||"student";$("adminEditBanned").value=String(!!u.banned);$("adminEditPassword").value="";$("adminUserEditEmail").innerText=u.email||"";$("adminEditErr").innerText="";$("adminUserEditModal").classList.add("show")}window.openAdminUserEdit=openAdminUserEdit;
+async function saveAdminUserEdit(){const uid=$("adminEditUid").value,role=$("adminEditRole").value,banned=$("adminEditBanned").value==="true",password=$("adminEditPassword").value;if(password&&password.length<6){$("adminEditErr").innerText="รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร";return}try{await apiPost({action:"setUserRole",uid,role});await apiPost({action:"setUserBan",uid,banned});if(password)await apiPost({action:"adminSetUserPassword",uid,password});closeOverlay("adminUserEditModal");toast("บันทึกข้อมูลบัญชีแล้ว");await loadUsers()}catch(e){$("adminEditErr").innerText=e.message||"บันทึกไม่สำเร็จ"}}window.saveAdminUserEdit=saveAdminUserEdit;
+async function deleteUserConfirm(uid){confirmAction("ลบบัญชี","ต้องการลบบัญชีนี้ถาวรหรือไม่? การลบจะไม่สามารถย้อนกลับได้",async()=>{await apiPost({action:"deleteUser",uid});toast("ลบบัญชีแล้ว");loadUsers()})}window.deleteUserConfirm=deleteUserConfirm;
 async function toggleBan(uid,banned){try{await apiPost({action:"setUserBan",uid,banned});toast(banned?"ระงับผู้ใช้แล้ว":"ยกเลิกการระงับแล้ว");loadUsers()}catch(e){toast(e.message,false)}}window.toggleBan=toggleBan;
 
 /* ---------------- Admin: แชท (ตอบผู้ใช้) ---------------- */
@@ -1671,6 +1754,13 @@ function closeChatModal(){closeOverlay("chatModal");if(chatPollTimer){clearInter
 async function loadChat(){try{let msgs=await apiGetAuth("getChat");renderChatMessages(msgs)}catch(e){/* เงียบไว้ระหว่าง poll */}}
 function renderChatMessages(msgs){let box=$("chatMessages");box.innerHTML=msgs.map(m=>'<div class="chat-bubble '+(m.sender==="user"?"me":m.sender==="ai"?"ai":"admin")+'"><div class="chat-meta">'+(m.sender==="user"?"คุณ":m.sender==="ai"?"🤖 AI ผู้ช่วย":"🛡️ แอดมิน")+'</div><div class="chat-text">'+esc(m.message)+'</div></div>').join("")||'<div class="empty">พิมพ์ข้อความเพื่อเริ่มแชทกับแอดมินหรือ AI ได้เลย</div>';box.scrollTop=box.scrollHeight}
 async function sendChat(){let inp=$("chatInput");let msg=inp.value.trim();if(!msg)return;inp.value="";try{let data=await apiPost({action:"sendChatMessage",message:msg});renderChatMessages(data)}catch(e){toast(e.message,false)}}window.sendChat=sendChat;
+
+/* ---------------- Temporary support chat for suspended accounts ---------------- */
+function getTempSupportId(){let id=sessionStorage.getItem("np404_temp_support_id");if(!id){id="temp_"+crypto.randomUUID();sessionStorage.setItem("np404_temp_support_id",id)}return id}
+async function openTempSupport(){tempSupportId=getTempSupportId();$("tempSupportModal").classList.add("show");await loadTempSupport();if(tempSupportTimer)clearInterval(tempSupportTimer);tempSupportTimer=setInterval(loadTempSupport,6000)}window.openTempSupport=openTempSupport;
+function closeTempSupport(){closeOverlay("tempSupportModal");if(tempSupportTimer){clearInterval(tempSupportTimer);tempSupportTimer=null}}window.closeTempSupport=closeTempSupport;
+async function loadTempSupport(){try{const msgs=await apiGet("getTemporarySupportChat",{supportId:tempSupportId});$("tempSupportMessages").innerHTML=(msgs||[]).map(m=>'<div class="chat-bubble '+(m.sender==="admin"?"admin":"me")+'"><div class="chat-meta">'+(m.sender==="admin"?"แอดมิน":"คุณ")+'</div><div>'+esc(m.message)+'</div></div>').join("")||'<div class="empty">เริ่มส่งข้อความเพื่อสอบถามปัญหากับแอดมิน</div>';$("tempSupportMessages").scrollTop=$("tempSupportMessages").scrollHeight}catch(e){}}
+async function sendTempSupport(){const inp=$("tempSupportInput"),msg=inp.value.trim();if(!msg)return;inp.value="";try{const data=await apiPost({action:"sendTemporarySupportMessage",supportId:tempSupportId||getTempSupportId(),message:msg,name:(accountInfo?.firstName||"")+" "+(accountInfo?.lastName||"")});$("tempSupportMessages").innerHTML=(data||[]).map(m=>'<div class="chat-bubble '+(m.sender==="admin"?"admin":"me")+'"><div class="chat-meta">'+(m.sender==="admin"?"แอดมิน":"คุณ")+'</div><div>'+esc(m.message)+'</div></div>').join("");$("tempSupportMessages").scrollTop=$("tempSupportMessages").scrollHeight}catch(e){toast(e.message,false)}}window.sendTempSupport=sendTempSupport;
 
 /* ---------------- Confirm/Logout ---------------- */
 function confirmAction(t,m,fn){$("confirmTitle").innerText=t;$("confirmText").innerText=m;$("confirmOk").onclick=async()=>{closeOverlay("confirmModal");try{await fn()}catch(e){toast(e.message,false)}};$("confirmModal").classList.add("show")}
